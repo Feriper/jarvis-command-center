@@ -27,9 +27,15 @@ import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
+import { MessageSquare, CheckSquare, Share2, TrendingUp, Bell } from "lucide-react";
+
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: MessageSquare, label: "Jarvis Chat", path: "/chat" },
+  { icon: CheckSquare, label: "Tarefas", path: "/tasks" },
+  { icon: Share2, label: "Redes Sociais", path: "/social" },
+  { icon: TrendingUp, label: "Ads & Finanças", path: "/ads" },
+  { icon: Bell, label: "Alertas", path: "/alerts" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
