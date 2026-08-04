@@ -4,15 +4,23 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import DashboardLayout from "./components/DashboardLayout";
 import Home from "./pages/Home";
+import JarvisChat from "./pages/JarvisChat";
+import Tasks from "./pages/Tasks";
+import SocialMedia from "./pages/SocialMedia";
+import Ads from "./pages/Ads";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/dashboard"} component={() => <DashboardLayout><JarvisChat /></DashboardLayout>} />
+      <Route path={"/chat"} component={() => <DashboardLayout><JarvisChat /></DashboardLayout>} />
+      <Route path={"/tasks"} component={() => <DashboardLayout><Tasks /></DashboardLayout>} />
+      <Route path={"/social"} component={() => <DashboardLayout><SocialMedia /></DashboardLayout>} />
+      <Route path={"/ads"} component={() => <DashboardLayout><Ads /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
@@ -27,8 +35,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider
-        defaultTheme="light"
-        // switchable
+        defaultTheme="dark"
       >
         <TooltipProvider>
           <Toaster />
