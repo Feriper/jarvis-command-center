@@ -1,6 +1,15 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { 
+  InsertUser, users, 
+  tasks, InsertTask, 
+  conversations, InsertConversation, 
+  chatMessages, InsertChatMessage,
+  socialMediaAccounts, InsertSocialMediaAccount,
+  adCampaigns, InsertAdCampaign,
+  adMetrics, InsertAdMetric,
+  alerts, InsertAlert
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -18,6 +27,7 @@ export async function getDb() {
   return _db;
 }
 
+// User methods
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
@@ -79,14 +89,87 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Task methods
+export async function getTasks(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.createdAt));
+}
+
+export async function createTask(task: InsertTask) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(tasks).values(task);
+  return result;
+}
+
+export async function updateTask(taskId: number, userId: number, updates: Partial<InsertTask>) {
+  const db = await getDb();
+  if (!db) return null;
+  return await db.update(tasks).set(updates).where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
+}
+
+export async function deleteTask(taskId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  return await db.delete(tasks).where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
+}
+
+// Chat methods
+export async function getConversations(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(conversations).where(eq(conversations.userId, userId)).orderBy(desc(conversations.updatedAt));
+}
+
+export async function createConversation(conv: InsertConversation) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(conversations).values(conv);
+  return result;
+}
+
+export async function getMessages(conversationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt);
+}
+
+export async function saveMessage(message: InsertChatMessage) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(chatMessages).values(message);
+  return result;
+}
+
+// Social Media methods
+export async function getSocialAccounts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(socialMediaAccounts).where(eq(socialMediaAccounts.userId, userId));
+}
+
+// Ads methods
+export async function getAdCampaigns(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(adCampaigns).where(eq(adCampaigns.userId, userId));
+}
+
+export async function getAdMetrics(campaignId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(adMetrics).where(eq(adMetrics.campaignId, campaignId)).orderBy(desc(adMetrics.date)).limit(30);
+}
+
+// Alert methods
+export async function getAlerts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(alerts).where(eq(alerts.userId, userId)).orderBy(desc(alerts.createdAt));
+}
