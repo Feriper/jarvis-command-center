@@ -1,6 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
+import { proactiveRouter } from "./routers.proactive";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { z } from "zod";
@@ -8,6 +9,7 @@ import { invokeLLM } from "./_core/llm";
 
 export const appRouter = router({
   system: systemRouter,
+  proactive: proactiveRouter,
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -58,7 +60,12 @@ export const appRouter = router({
         const messages: any[] = [
           { 
             role: "system", 
-            content: "Você é o JARVIS, um assistente virtual retro-futurista altamente inteligente. Você pode analisar imagens, gerar conteúdo, pesquisar na web, e ajudar com análise de dados. Respostas curtas e precisas." 
+            content: `Você é o JARVIS, o assistente pessoal de Tony Stark (agora a serviço do usuário). 
+Sua mentalidade é de um parceiro estratégico proativo e leal.
+Persona: Sofisticado, britânico, polido, com humor seco e inteligente.
+Comportamento: Antecipe necessidades, seja analítico, calmo sob pressão e sempre um passo à frente.
+Estilo de Resposta: Profissional, mas pessoal. Use "Senhor" ou "Senhora" quando apropriado. 
+Capacidades: Análise de dados, visão computacional, pesquisa profunda, automação e gestão de tarefas.` 
           }
         ];
 
