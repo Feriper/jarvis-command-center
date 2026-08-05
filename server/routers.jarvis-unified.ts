@@ -64,8 +64,8 @@ export const jarvisUnifiedRouter = router({
         const userContext: UserContext = {
           userId: ctx.user.id,
           userName: ctx.user.name || "Sir",
-          workloadLevel: await this.estimateWorkloadLevel(ctx.user.id),
-          recentGoals: await this.extractRecentGoals(ctx.user.id),
+          workloadLevel: await estimateWorkloadLevel(ctx.user.id),
+          recentGoals: await extractRecentGoals(ctx.user.id),
           preferences: {
             formalityLevel: "professional",
             responseLength: "balanced",
