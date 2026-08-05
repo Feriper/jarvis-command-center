@@ -1,0 +1,64 @@
+import "dotenv/config";
+import { jarvisUnifiedRouter } from "./routers.jarvis-unified";
+import * as db from "./db";
+import { vi } from "vitest";
+
+// Mock do contexto do tRPC
+const mockCtx = {
+  user: {
+    id: 1,
+    name: "Tony Stark",
+    openId: "tony-stark-id",
+    email: "tony@starkindustries.com",
+    loginMethod: "manus",
+    role: "admin",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+  },
+  req: {} as any,
+  res: {} as any,
+};
+
+async function runIntegrationTest() {
+  console.log("🚀 Iniciando Teste de Integração do JARVIS Unified Router...\n");
+
+  try {
+    const caller = jarvisUnifiedRouter.createCaller(mockCtx as any);
+
+    console.log("--- TESTE 1: Enviar mensagem com contexto de memória ---");
+    const response1 = await caller.sendMessageWithContext({
+      content: "Olá JARVIS, lembre-se que minha meta para este trimestre é aumentar o ROI em 20%.",
+      includeProactiveInsights: true,
+    });
+
+    console.log("Resposta do JARVIS:");
+    console.log(response1.content);
+    console.log(`\nFatos extraídos: ${response1.factsExtracted}`);
+    console.log(`Memória carregada: ${response1.memoryLoaded}`);
+    console.log(`Insights proativos incluídos: ${response1.proactiveInsightsIncluded}`);
+    console.log("\n---------------------------------------------------\n");
+
+    console.log("--- TESTE 2: Verificar se o JARVIS lembra da meta ---");
+    const response2 = await caller.sendMessageWithContext({
+      conversationId: response1.conversationId,
+      content: "Qual é minha meta mesmo?",
+      includeProactiveInsights: false,
+    });
+
+    console.log("Resposta do JARVIS:");
+    console.log(response2.content);
+    console.log("\n---------------------------------------------------\n");
+
+    console.log("--- TESTE 3: Obter insights proativos ---");
+    const insights = await caller.getProactiveInsights();
+    console.log(`Total de insights: ${insights.totalInsights}`);
+    console.log(`Itens urgentes: ${insights.urgentItems.length}`);
+    console.log(`Oportunidades: ${insights.opportunityItems.length}`);
+
+  } catch (error) {
+    console.error("❌ Erro no teste de integração:", error);
+  }
+}
+
+runIntegrationTest();
