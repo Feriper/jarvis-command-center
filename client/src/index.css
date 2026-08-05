@@ -302,8 +302,8 @@
   }
 }
 
-  /* Efeitos de animação avançados */
-  @keyframes pulse-glow {
+/* Efeitos de animação avançados */
+@keyframes pulse-glow {
     0%, 100% {
       box-shadow: 0 0 5px oklch(1 0.2 280), 0 0 10px oklch(1 0.2 280);
       opacity: 1;
@@ -500,7 +500,6 @@
   .slide-in {
     animation: slide-in 0.3s ease-out;
   }
-}
 
 /* Estilos globais adicionais */
 @layer utilities {

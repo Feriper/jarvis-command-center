@@ -184,11 +184,15 @@ import {
 export async function getMemory(userId: number, category?: string) {
   const db = await getDb();
   if (!db) return [];
-  const query = db.select().from(userMemory).where(eq(userMemory.userId, userId));
+  
+  const conditions = [eq(userMemory.userId, userId)];
   if (category) {
-    return await query.where(eq(userMemory.category, category));
+    conditions.push(eq(userMemory.category, category));
   }
-  return await query;
+  
+  return await db.select()
+    .from(userMemory)
+    .where(and(...conditions));
 }
 
 export async function saveMemory(memory: InsertUserMemory) {

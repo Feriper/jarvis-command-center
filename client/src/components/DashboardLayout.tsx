@@ -27,7 +27,7 @@ import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
-import { MessageSquare, CheckSquare, Share2, TrendingUp, Bell, Palette } from "lucide-react";
+import { MessageSquare, CheckSquare, Share2, TrendingUp, Bell, Palette, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 const menuItems = [
@@ -126,8 +126,9 @@ function DashboardLayoutContent({
 
   useEffect(() => {
     // Carregar tema das preferências do usuário se existir
-    if (user?.preferences?.theme) {
-      setTheme(user.preferences.theme as any);
+    const userPrefs = (user as any)?.preferences;
+    if (userPrefs?.theme) {
+      setTheme(userPrefs.theme as any);
     }
   }, [user]);
 
