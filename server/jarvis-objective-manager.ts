@@ -102,8 +102,14 @@ If no, return { "isObjective": false }.`,
     if (!goalsMemory) return [];
 
     return goalsMemory
-      .map(m => JSON.parse(m.value))
-      .filter(obj => obj.status === "active");
+      .map((m: any) => {
+        try {
+          return JSON.parse(m.value);
+        } catch {
+          return null;
+        }
+      })
+      .filter((obj: any) => obj && obj.status === "active");
   }
 
   /**

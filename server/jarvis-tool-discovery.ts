@@ -109,8 +109,15 @@ Return a JSON object: { "name": string, "purpose": string, "endpoint": string, "
     if (!memory) return [];
 
     return memory
-      .filter(m => m.key.startsWith("tool_"))
-      .map(m => JSON.parse(m.value));
+      .filter((m: any) => m.key && m.key.startsWith("tool_"))
+      .map((m: any) => {
+        try {
+          return JSON.parse(m.value);
+        } catch {
+          return null;
+        }
+      })
+      .filter((t: any) => t !== null);
   }
 }
 

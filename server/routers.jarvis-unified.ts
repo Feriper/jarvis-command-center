@@ -156,6 +156,8 @@ export const jarvisUnifiedRouter = router({
           confidenceScore,
           securityStatus: threat ? "threat_blocked" : "safe",
           toolsDiscovered: learnedTools.length,
+          memoryLoaded: memoryWindow.importantFacts.length,
+          objectivesActive: activeObjectives.length,
         };
       } catch (error) {
         console.error("[JARVIS_UNIFIED] Erro Beyond:", error);

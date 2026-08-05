@@ -147,7 +147,7 @@ describe("JARVIS Mentalidade - Testes de Lógica", () => {
       (db.createConversation as any).mockResolvedValue({ insertId: 101 });
       (db.getMessages as any).mockResolvedValue([]);
       (db.getMemory as any).mockResolvedValue([
-        { category: "preference", value: "Prefere café forte", importance: 5 }
+        { key: "pref_1", category: "preference", value: JSON.stringify({ content: "Prefere café forte" }), importance: 5 }
       ]);
       (db.getAdCampaigns as any).mockResolvedValue([]);
       (db.getTasks as any).mockResolvedValue([]);
