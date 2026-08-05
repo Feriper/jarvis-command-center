@@ -7,6 +7,9 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import Home from "./pages/Home";
 import JarvisChat from "./pages/JarvisChat";
+import { JarvisUltraPremium } from "./components/JarvisUltraPremium";
+import { JarvisAuthGate } from "./components/JarvisAuthGate";
+import React, { useState } from "react";
 import Tasks from "./pages/Tasks";
 import SocialMedia from "./pages/SocialMedia";
 import Ads from "./pages/Ads";
@@ -15,9 +18,15 @@ import Automations from "./pages/Automations";
 import Swarm from "./pages/Swarm";
 
 function Router() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  if (!isAuthenticated) {
+    return <JarvisAuthGate onAuthSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <Switch>
-      <Route path={"/"} component={() => <DashboardLayout><Home /></DashboardLayout>} />
+      <Route path={"/"} component={() => <JarvisUltraPremium />} />
       <Route path={"/dashboard"} component={() => <DashboardLayout><Home /></DashboardLayout>} />
       <Route path={"/chat"} component={() => <DashboardLayout><JarvisChat /></DashboardLayout>} />
       <Route path={"/tasks"} component={() => <DashboardLayout><Tasks /></DashboardLayout>} />
