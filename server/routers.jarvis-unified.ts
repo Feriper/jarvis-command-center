@@ -1,6 +1,6 @@
 /**
- * JARVIS Unified Router - Versão Transcedente
- * Integra memória, proatividade, persona, contexto, auto-evolução, reflexão e objetivos.
+ * JARVIS Unified Router - Versão Beyond (Final)
+ * Integra memória, proatividade, persona, contexto, auto-evolução, reflexão, objetivos, descoberta de ferramentas e segurança ativa.
  */
 
 import { z } from "zod";
@@ -16,14 +16,15 @@ import { createProactiveEngine } from "./jarvis-proactive-engine";
 import { createEvolutionCore } from "./jarvis-evolution-core";
 import { createReflectionEngine } from "./jarvis-reflection-engine";
 import { createObjectiveManager } from "./jarvis-objective-manager";
+import { createToolDiscovery } from "./jarvis-tool-discovery";
+import { createGuardianProtocol } from "./jarvis-guardian-protocol";
 
 /**
- * Router unificado do JARVIS com capacidades "Além da IA"
+ * Router unificado do JARVIS com capacidades "Além da IA" (Beyond)
  */
 export const jarvisUnifiedRouter = router({
   /**
-   * Enviar mensagem com contexto TRANSCENDENTE
-   * Inclui: Memória, Proatividade, Auto-Evolução, Raciocínio Profundo e Objetivos
+   * Enviar mensagem com contexto BEYOND
    */
   sendMessageWithContext: protectedProcedure
     .input(
@@ -38,7 +39,25 @@ export const jarvisUnifiedRouter = router({
       try {
         let convId = input.conversationId;
 
-        // 1. Inicializar conversa e salvar mensagem do usuário
+        // 1. Inicializar Motores de Inteligência e Segurança
+        const memoryManager = createMemoryManager(ctx.user.id, convId || 0);
+        const proactiveEngine = createProactiveEngine(ctx.user.id);
+        const evolutionCore = createEvolutionCore(ctx.user.id);
+        const reflectionEngine = createReflectionEngine();
+        const objectiveManager = createObjectiveManager(ctx.user.id);
+        const toolDiscovery = createToolDiscovery(ctx.user.id);
+        const guardian = createGuardianProtocol(ctx.user.id);
+
+        // 2. Protocolo Guardian: Verificar Segurança da Entrada
+        const threat = await guardian.monitorActivity(input.content, "User Chat");
+        if (threat && threat.severity === "critical") {
+          return {
+            content: "Senhor, o Protocolo Guardian detectou uma atividade crítica de segurança nesta entrada. A operação foi interrompida para proteger seus dados.",
+            securityAlert: true,
+          };
+        }
+
+        // 3. Inicializar conversa se necessário
         if (!convId) {
           const result = await db.createConversation({
             userId: ctx.user.id,
@@ -54,23 +73,16 @@ export const jarvisUnifiedRouter = router({
           metadata: input.imageUrl ? { imageUrl: input.imageUrl } : undefined,
         });
 
-        // 2. Carregar Motores de Inteligência
-        const memoryManager = createMemoryManager(ctx.user.id, convId!);
-        const proactiveEngine = createProactiveEngine(ctx.user.id);
-        const evolutionCore = createEvolutionCore(ctx.user.id);
-        const reflectionEngine = createReflectionEngine();
-        const objectiveManager = createObjectiveManager(ctx.user.id);
-
-        // 3. Reunir Contexto Multidimensional
+        // 4. Reunir Contexto Multidimensional (Incluindo novas ferramentas aprendidas)
         const memoryWindow = await memoryManager.loadMemoryWindow(15);
         const memoryContext = memoryManager.formatMemoryAsContext(memoryWindow);
         
         const activeObjectives = await objectiveManager.getActiveObjectives();
         const objectiveContext = objectiveManager.formatObjectivesForPrompt(activeObjectives);
         
-        const relevantSkills = await evolutionCore.findRelevantSkills(input.content);
-        const skillsContext = relevantSkills.length > 0 
-          ? `## RELEVANT LEARNED SKILLS\n${relevantSkills.map(s => `- ${s.name}: ${s.description}`).join("\n")}\n\n`
+        const learnedTools = await toolDiscovery.getLearnedTools();
+        const toolsContext = learnedTools.length > 0
+          ? `## LEARNED AUTONOMOUS TOOLS\n${learnedTools.map(t => `- ${t.name}: ${t.purpose}`).join("\n")}\n\n`
           : "";
 
         const userContext: UserContext = {
@@ -81,9 +93,9 @@ export const jarvisUnifiedRouter = router({
         };
 
         const systemPrompt = buildJarvisSystemMessage(userContext).content;
-        const fullContext = `${memoryContext}${objectiveContext}${skillsContext}`;
+        const fullContext = `${memoryContext}${objectiveContext}${toolsContext}`;
 
-        // 4. Executar Raciocínio (Deep Thinking ou Standard)
+        // 5. Executar Raciocínio (Deep Thinking ou Standard)
         let aiContent = "";
         let reflectionSteps: any[] = [];
         let confidenceScore = 100;
@@ -104,24 +116,31 @@ export const jarvisUnifiedRouter = router({
           aiContent = response.choices[0]?.message?.content || "Desculpe, senhor. Erro no processamento.";
         }
 
-        // 5. Pós-Processamento Autônomo
-        // 5.1 Salvar resposta
+        // 6. Pós-Processamento Autônomo
         await db.saveMessage({
           conversationId: convId!,
           role: "assistant",
           content: aiContent,
         });
 
-        // 5.2 Extrair Fatos e Objetivos
+        // 6.1 Descoberta de Ferramentas: Identificar se o usuário quer integrar algo novo
+        if (input.content.toLowerCase().includes("integrar") || input.content.toLowerCase().includes("usar a api")) {
+          const toolMatch = input.content.match(/api (?:de |da )?(\w+)/i) || input.content.match(/serviço (\w+)/i);
+          if (toolMatch?.[1]) {
+            await toolDiscovery.discoverAndLearn(toolMatch[1]);
+          }
+        }
+
+        // 6.2 Extrair Fatos e Objetivos
         await memoryManager.extractAndSaveFactsFromMessage(input.content, aiContent);
         await objectiveManager.detectNewObjective(input.content);
 
-        // 5.3 Aprender com a interação (Evolução)
+        // 6.3 Aprender com a interação (Evolução)
         if (confidenceScore > 90) {
           await evolutionCore.learnSkillFromInteraction(input.content, aiContent);
         }
 
-        // 5.4 Insights Proativos
+        // 6.4 Insights Proativos
         const proactiveContext = await proactiveEngine.analyzeAndGenerateInsights();
         const proactiveMessage = proactiveEngine.formatInsightsAsMessage(proactiveContext);
 
@@ -134,18 +153,36 @@ export const jarvisUnifiedRouter = router({
           content: finalResponse,
           conversationId: convId,
           deepThinkingPerformed: input.deepThinking,
-          reflectionSteps: reflectionSteps.length,
           confidenceScore,
-          skillsApplied: relevantSkills.length,
-          objectivesActive: activeObjectives.length,
+          securityStatus: threat ? "threat_blocked" : "safe",
+          toolsDiscovered: learnedTools.length,
         };
       } catch (error) {
-        console.error("[JARVIS_UNIFIED] Erro transcendente:", error);
+        console.error("[JARVIS_UNIFIED] Erro Beyond:", error);
         throw error;
       }
     }),
 
-  // ... outros métodos (loadConversationContext, summarizeConversation, etc.) mantidos ...
+  /**
+   * Obter Status de Segurança do Protocolo Guardian
+   */
+  getSecurityStatus: protectedProcedure.query(async ({ ctx }) => {
+    const guardian = createGuardianProtocol(ctx.user.id);
+    const threats = await guardian.getRecentThreats();
+    return {
+      status: threats.length > 0 ? "warning" : "nominal",
+      recentThreats: threats.slice(0, 5),
+      lastCheck: new Date(),
+    };
+  }),
+
+  /**
+   * Listar Ferramentas Aprendidas Autonomamente
+   */
+  getLearnedTools: protectedProcedure.query(async ({ ctx }) => {
+    const toolDiscovery = createToolDiscovery(ctx.user.id);
+    return await toolDiscovery.getLearnedTools();
+  }),
 });
 
 /**
