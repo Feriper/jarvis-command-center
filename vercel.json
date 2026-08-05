@@ -1,19 +1,16 @@
 {
   "version": 2,
-  "buildCommand": "pnpm install && pnpm build",
+  "name": "jarvis-command-center",
+  "buildCommand": "pnpm build",
   "outputDirectory": "dist/public",
-  "env": {
-    "NODE_ENV": "production"
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "https://jarvis-backend.railway.app/api/$1"
     },
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "cleanUrls": true
+  ]
 }
