@@ -8,7 +8,13 @@ import {
   socialMediaAccounts, InsertSocialMediaAccount,
   adCampaigns, InsertAdCampaign,
   adMetrics, InsertAdMetric,
-  alerts, InsertAlert
+  alerts, InsertAlert,
+  userMemory, InsertUserMemory,
+  automationTriggers, InsertAutomationTrigger,
+  agentTasks, InsertAgentTask,
+  aiAgents, InsertAiAgent,
+  sentimentAnalysis, InsertSentimentAnalysis,
+  financialProjections, InsertFinancialProjection
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -174,12 +180,6 @@ export async function getAlerts(userId: number) {
   return await db.select().from(alerts).where(eq(alerts.userId, userId)).orderBy(desc(alerts.createdAt));
 }
 
-import { 
-  userMemory, InsertUserMemory,
-  automationTriggers, InsertAutomationTrigger,
-  agentTasks, InsertAgentTask 
-} from "../drizzle/schema";
-
 // Memory & Knowledge methods
 export async function getMemory(userId: number, category?: string) {
   const db = await getDb();
@@ -244,12 +244,6 @@ export async function updateAgentTask(taskId: number, updates: Partial<InsertAge
   return await db.update(agentTasks).set(updates).where(eq(agentTasks.id, taskId));
 }
 
-import { 
-  aiAgents, InsertAiAgent,
-  sentimentAnalysis, InsertSentimentAnalysis,
-  financialProjections, InsertFinancialProjection 
-} from "../drizzle/schema";
-
 // AI Agent methods
 export async function getAiAgents(userId: number) {
   const db = await getDb();
@@ -268,11 +262,15 @@ export async function createAiAgent(agent: InsertAiAgent) {
 export async function getSentimentHistory(userId: number, accountId?: number) {
   const db = await getDb();
   if (!db) return [];
-  const query = db.select().from(sentimentAnalysis).where(eq(sentimentAnalysis.userId, userId));
   if (accountId) {
-    return await query.where(eq(sentimentAnalysis.accountId, accountId)).orderBy(desc(sentimentAnalysis.date));
+    return await db.select().from(sentimentAnalysis).where(
+      and(
+        eq(sentimentAnalysis.userId, userId),
+        eq(sentimentAnalysis.accountId, accountId)
+      )
+    ).orderBy(desc(sentimentAnalysis.date));
   }
-  return await query.orderBy(desc(sentimentAnalysis.date));
+  return await db.select().from(sentimentAnalysis).where(eq(sentimentAnalysis.userId, userId)).orderBy(desc(sentimentAnalysis.date));
 }
 
 export async function saveSentiment(analysis: InsertSentimentAnalysis) {
@@ -286,11 +284,15 @@ export async function saveSentiment(analysis: InsertSentimentAnalysis) {
 export async function getFinancialProjections(userId: number, type?: string) {
   const db = await getDb();
   if (!db) return [];
-  const query = db.select().from(financialProjections).where(eq(financialProjections.userId, userId));
   if (type) {
-    return await query.where(eq(financialProjections.type, type as any)).orderBy(financialProjections.projectionDate);
+    return await db.select().from(financialProjections).where(
+      and(
+        eq(financialProjections.userId, userId),
+        eq(financialProjections.type, type as any)
+      )
+    ).orderBy(financialProjections.projectionDate);
   }
-  return await query.orderBy(financialProjections.projectionDate);
+  return await db.select().from(financialProjections).where(eq(financialProjections.userId, userId)).orderBy(financialProjections.projectionDate);
 }
 
 export async function saveProjection(projection: InsertFinancialProjection) {

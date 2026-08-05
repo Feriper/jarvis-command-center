@@ -77,11 +77,11 @@ export function getCacheStats() {
  */
 export function invalidateCacheByPattern(pattern: string): number {
   let count = 0;
-  for (const key of cacheStore.keys()) {
+  Array.from(cacheStore.keys()).forEach(key => {
     if (key.includes(pattern)) {
       cacheStore.delete(key);
       count++;
     }
-  }
+  });
   return count;
 }

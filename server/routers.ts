@@ -564,7 +564,9 @@ Capacidades: Análise de dados, visão computacional, pesquisa profunda, automa�
           responseFormat: { type: "json_object" }
         });
 
-        const result = JSON.parse(response.choices[0]?.message?.content || '{"projections":[]}');
+        const content = response.choices[0]?.message?.content;
+        const contentStr = typeof content === 'string' ? content : JSON.stringify(content || '{"projections":[]}');
+        const result = JSON.parse(contentStr);
         
         // Salvar projeções no banco
         for (const p of result.projections) {

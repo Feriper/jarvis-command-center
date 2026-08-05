@@ -14,6 +14,53 @@ import * as dbProactive from "./db.proactive";
  */
 export const proactiveRouter = router({
   /**
+   * Orquestra um enxame de agentes para resolver um objetivo complexo
+   */
+  orchestrateSwarm: protectedProcedure
+    .input(z.object({ objective: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      // 1. Decompor o objetivo em subtarefas usando o JARVIS Central
+      const decomposition = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content: `Você é o Orquestrador JARVIS. Decompõe objetivos complexos em tarefas para agentes especialistas.
+Agentes Disponíveis:
+- Financial Advisor: Analisa Ads, ROI e finanças.
+- Social Strategist: Planeja conteúdo e analisa engajamento.
+- Executive Assistant: Gerencia tarefas e agenda.
+Retorne JSON: { "tasks": [{ "agent": string, "task": string, "priority": number }] }`
+          },
+          {
+            role: "user",
+            content: `Objetivo: ${input.objective}`
+          }
+        ],
+        responseFormat: { type: "json_object" }
+      });
+
+      const content = decomposition.choices[0]?.message?.content;
+      const contentStr = typeof content === 'string' ? content : JSON.stringify(content || '{"tasks":[]}');
+      const plan = JSON.parse(contentStr);
+
+      // 2. Criar tarefas de agente no banco de dados
+      const createdTasks = [];
+      for (const task of plan.tasks) {
+        const agentTask = await db.createAgentTask({
+          userId: ctx.user.id,
+          objective: `${task.agent}: ${task.task}`,
+          status: "pending",
+        });
+        createdTasks.push({ ...task, id: agentTask.insertId });
+      }
+
+      return {
+        message: `Senhor, o plano de ação foi traçado. ${createdTasks.length} sub-agentes foram mobilizados para o objetivo: "${input.objective}".`,
+        plan: createdTasks
+      };
+    }),
+
+  /**
    * Gera um relatório executivo proativo com anomalias e recomendações
    */
   generateProactiveReport: protectedProcedure.query(async ({ ctx }) => {
@@ -261,8 +308,9 @@ Forneça 5 recomendações específicas e mensuráveis para melhorar o desempenh
     // Agrupar por categoria
     const grouped = memory.reduce(
       (acc, m) => {
-        if (!acc[m.category]) acc[m.category] = [];
-        acc[m.category].push(m);
+        const cat = m.category || "general";
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(m);
         return acc;
       },
       {} as Record<string, typeof memory>

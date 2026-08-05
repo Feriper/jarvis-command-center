@@ -278,11 +278,11 @@ export async function getCampaignStats(campaignId: number, days: number = 30) {
     if (metrics.length === 0) return null;
 
     const stats = {
-      totalImpressions: metrics.reduce((sum, m) => sum + m.impressions, 0),
-      totalClicks: metrics.reduce((sum, m) => sum + m.clicks, 0),
-      totalConversions: metrics.reduce((sum, m) => sum + m.conversions, 0),
-      totalRevenue: metrics.reduce((sum, m) => sum + Number(m.revenue), 0),
-      totalSpent: metrics.reduce((sum, m) => sum + Number(m.cpc) * m.clicks, 0),
+      totalImpressions: metrics.reduce((sum, m) => sum + (m.impressions || 0), 0),
+      totalClicks: metrics.reduce((sum, m) => sum + (m.clicks || 0), 0),
+      totalConversions: metrics.reduce((sum, m) => sum + (m.conversions || 0), 0),
+      totalRevenue: metrics.reduce((sum, m) => sum + Number(m.revenue || 0), 0),
+      totalSpent: metrics.reduce((sum, m) => sum + Number(m.cpc || 0) * (m.clicks || 0), 0),
       avgCTR: metrics.reduce((sum, m) => sum + Number(m.ctr), 0) / metrics.length,
       avgCPC: metrics.reduce((sum, m) => sum + Number(m.cpc), 0) / metrics.length,
       avgROI: metrics.reduce((sum, m) => sum + Number(m.roi), 0) / metrics.length,
