@@ -243,3 +243,59 @@ export async function updateAgentTask(taskId: number, updates: Partial<InsertAge
   if (!db) return null;
   return await db.update(agentTasks).set(updates).where(eq(agentTasks.id, taskId));
 }
+
+import { 
+  aiAgents, InsertAiAgent,
+  sentimentAnalysis, InsertSentimentAnalysis,
+  financialProjections, InsertFinancialProjection 
+} from "../drizzle/schema";
+
+// AI Agent methods
+export async function getAiAgents(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(aiAgents).where(eq(aiAgents.userId, userId));
+}
+
+export async function createAiAgent(agent: InsertAiAgent) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(aiAgents).values(agent);
+  return result;
+}
+
+// Sentiment Analysis methods
+export async function getSentimentHistory(userId: number, accountId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const query = db.select().from(sentimentAnalysis).where(eq(sentimentAnalysis.userId, userId));
+  if (accountId) {
+    return await query.where(eq(sentimentAnalysis.accountId, accountId)).orderBy(desc(sentimentAnalysis.date));
+  }
+  return await query.orderBy(desc(sentimentAnalysis.date));
+}
+
+export async function saveSentiment(analysis: InsertSentimentAnalysis) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(sentimentAnalysis).values(analysis);
+  return result;
+}
+
+// Financial Projection methods
+export async function getFinancialProjections(userId: number, type?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const query = db.select().from(financialProjections).where(eq(financialProjections.userId, userId));
+  if (type) {
+    return await query.where(eq(financialProjections.type, type as any)).orderBy(financialProjections.projectionDate);
+  }
+  return await query.orderBy(financialProjections.projectionDate);
+}
+
+export async function saveProjection(projection: InsertFinancialProjection) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(financialProjections).values(projection);
+  return result;
+}

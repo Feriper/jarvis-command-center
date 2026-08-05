@@ -27,7 +27,7 @@ import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
-import { MessageSquare, CheckSquare, Share2, TrendingUp, Bell, Palette, Zap } from "lucide-react";
+import { MessageSquare, CheckSquare, Share2, TrendingUp, Bell, Palette, Zap, Cpu } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 const menuItems = [
@@ -38,6 +38,7 @@ const menuItems = [
   { icon: TrendingUp, label: "Ads & Finanças", path: "/ads" },
   { icon: Bell, label: "Alertas", path: "/alerts" },
   { icon: Zap, label: "Automações", path: "/automations" },
+  { icon: Cpu, label: "Swarm (Agentes)", path: "/swarm" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

@@ -508,6 +508,70 @@ export const appRouter = router({
           status: "pending"
         });
       }),
+    listAgents: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getAiAgents(ctx.user.id);
+    }),
+    deployAgent: protectedProcedure
+      .input(z.object({
+        name: z.string(),
+        role: z.string(),
+        capabilities: z.array(z.string()),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return await db.createAiAgent({
+          userId: ctx.user.id,
+          ...input,
+          status: "active"
+        });
+      }),
+  }),
+
+  analytics: router({
+    getSentiment: protectedProcedure
+      .input(z.object({ accountId: z.number().optional() }))
+      .query(async ({ ctx, input }) => {
+        return await db.getSentimentHistory(ctx.user.id, input.accountId);
+      }),
+    getProjections: protectedProcedure
+      .input(z.object({ type: z.enum(["ad_roi", "cash_flow", "revenue"]).optional() }))
+      .query(async ({ ctx, input }) => {
+        return await db.getFinancialProjections(ctx.user.id, input.type);
+      }),
+    runPredictiveAnalysis: protectedProcedure
+      .input(z.object({ type: z.enum(["ad_roi", "cash_flow", "revenue"]) }))
+      .mutation(async ({ ctx, input }) => {
+        // Simular análise preditiva com LLM
+        const metrics = await db.getAdCampaigns(ctx.user.id);
+        
+        const response = await invokeLLM({
+          messages: [
+            {
+              role: "system",
+              content: "Você é um analista preditivo de IA. Gere 3 projeções futuras baseadas nos dados fornecidos em formato JSON."
+            },
+            {
+              role: "user",
+              content: `Gere projeções para ${input.type} baseadas nestes dados: ${JSON.stringify(metrics)}. Retorne JSON: { "projections": [{ "date": string, "value": number, "confidence": number }] }`
+            }
+          ],
+          responseFormat: { type: "json_object" }
+        });
+
+        const result = JSON.parse(response.choices[0]?.message?.content || '{"projections":[]}');
+        
+        // Salvar projeções no banco
+        for (const p of result.projections) {
+          await db.saveProjection({
+            userId: ctx.user.id,
+            type: input.type,
+            projectionDate: new Date(p.date),
+            predictedValue: p.value.toString(),
+            confidence: p.confidence.toString(),
+          });
+        }
+
+        return result;
+      }),
   }),
 
   user: router({

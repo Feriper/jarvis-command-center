@@ -12,6 +12,7 @@ import SocialMedia from "./pages/SocialMedia";
 import Ads from "./pages/Ads";
 import Alerts from "./pages/Alerts";
 import Automations from "./pages/Automations";
+import Swarm from "./pages/Swarm";
 
 function Router() {
   return (
@@ -24,6 +25,7 @@ function Router() {
       <Route path={"/ads"} component={() => <DashboardLayout><Ads /></DashboardLayout>} />
       <Route path={"/alerts"} component={() => <DashboardLayout><Alerts /></DashboardLayout>} />
       <Route path={"/automations"} component={() => <DashboardLayout><Automations /></DashboardLayout>} />
+      <Route path={"/swarm"} component={() => <DashboardLayout><Swarm /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

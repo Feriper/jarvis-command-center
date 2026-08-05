@@ -263,3 +263,55 @@ export const agentTasks = mysqlTable("agent_tasks", {
 
 export type AgentTask = typeof agentTasks.$inferSelect;
 export type InsertAgentTask = typeof agentTasks.$inferInsert;
+
+/**
+ * Specialized AI agents for Swarm Mode
+ */
+export const aiAgents = mysqlTable("ai_agents", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  role: varchar("role", { length: 100 }).notNull(), // e.g., "Financial Advisor", "Social Strategist"
+  capabilities: json("capabilities").notNull(), // list of specialized tools
+  status: mysqlEnum("status", ["active", "idle", "busy"]).default("active").notNull(),
+  lastTaskAt: timestamp("lastTaskAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AiAgent = typeof aiAgents.$inferSelect;
+export type InsertAiAgent = typeof aiAgents.$inferInsert;
+
+/**
+ * Social media sentiment analysis records
+ */
+export const sentimentAnalysis = mysqlTable("sentiment_analysis", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  accountId: int("accountId").notNull(),
+  date: timestamp("date").notNull(),
+  score: decimal("score", { precision: 5, scale: 2 }).notNull(), // -1 to 1
+  keywords: json("keywords"),
+  trend: mysqlEnum("trend", ["improving", "stable", "declining"]).default("stable"),
+  sampleCount: int("sampleCount").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type SentimentAnalysis = typeof sentimentAnalysis.$inferSelect;
+export type InsertSentimentAnalysis = typeof sentimentAnalysis.$inferInsert;
+
+/**
+ * Financial predictive projections
+ */
+export const financialProjections = mysqlTable("financial_projections", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: mysqlEnum("type", ["ad_roi", "cash_flow", "revenue"]).notNull(),
+  projectionDate: timestamp("projectionDate").notNull(),
+  predictedValue: decimal("predictedValue", { precision: 15, scale: 2 }).notNull(),
+  confidence: decimal("confidence", { precision: 5, scale: 2 }).notNull(), // 0 to 1
+  basisData: json("basisData"), // historical data used for projection
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FinancialProjection = typeof financialProjections.$inferSelect;
+export type InsertFinancialProjection = typeof financialProjections.$inferInsert;
