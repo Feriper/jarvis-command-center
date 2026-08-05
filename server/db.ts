@@ -173,3 +173,69 @@ export async function getAlerts(userId: number) {
   if (!db) return [];
   return await db.select().from(alerts).where(eq(alerts.userId, userId)).orderBy(desc(alerts.createdAt));
 }
+
+import { 
+  userMemory, InsertUserMemory,
+  automationTriggers, InsertAutomationTrigger,
+  agentTasks, InsertAgentTask 
+} from "../drizzle/schema";
+
+// Memory & Knowledge methods
+export async function getMemory(userId: number, category?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const query = db.select().from(userMemory).where(eq(userMemory.userId, userId));
+  if (category) {
+    return await query.where(eq(userMemory.category, category));
+  }
+  return await query;
+}
+
+export async function saveMemory(memory: InsertUserMemory) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(userMemory).values(memory).onDuplicateKeyUpdate({
+    set: { value: memory.value, category: memory.category, updatedAt: new Date() }
+  });
+  return result;
+}
+
+// Automation methods
+export async function getTriggers(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(automationTriggers).where(eq(automationTriggers.userId, userId));
+}
+
+export async function createTrigger(trigger: InsertAutomationTrigger) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(automationTriggers).values(trigger);
+  return result;
+}
+
+export async function updateTrigger(triggerId: number, userId: number, updates: Partial<InsertAutomationTrigger>) {
+  const db = await getDb();
+  if (!db) return null;
+  return await db.update(automationTriggers).set(updates).where(and(eq(automationTriggers.id, triggerId), eq(automationTriggers.userId, userId)));
+}
+
+// Agent methods
+export async function getAgentTasks(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(agentTasks).where(eq(agentTasks.userId, userId)).orderBy(desc(agentTasks.createdAt));
+}
+
+export async function createAgentTask(task: InsertAgentTask) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(agentTasks).values(task);
+  return result;
+}
+
+export async function updateAgentTask(taskId: number, updates: Partial<InsertAgentTask>) {
+  const db = await getDb();
+  if (!db) return null;
+  return await db.update(agentTasks).set(updates).where(eq(agentTasks.id, taskId));
+}

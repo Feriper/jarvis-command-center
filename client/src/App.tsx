@@ -10,16 +10,20 @@ import JarvisChat from "./pages/JarvisChat";
 import Tasks from "./pages/Tasks";
 import SocialMedia from "./pages/SocialMedia";
 import Ads from "./pages/Ads";
+import Alerts from "./pages/Alerts";
+import Automations from "./pages/Automations";
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/dashboard"} component={() => <DashboardLayout><JarvisChat /></DashboardLayout>} />
+      <Route path={"/"} component={() => <DashboardLayout><Home /></DashboardLayout>} />
+      <Route path={"/dashboard"} component={() => <DashboardLayout><Home /></DashboardLayout>} />
       <Route path={"/chat"} component={() => <DashboardLayout><JarvisChat /></DashboardLayout>} />
       <Route path={"/tasks"} component={() => <DashboardLayout><Tasks /></DashboardLayout>} />
       <Route path={"/social"} component={() => <DashboardLayout><SocialMedia /></DashboardLayout>} />
       <Route path={"/ads"} component={() => <DashboardLayout><Ads /></DashboardLayout>} />
+      <Route path={"/alerts"} component={() => <DashboardLayout><Alerts /></DashboardLayout>} />
+      <Route path={"/automations"} component={() => <DashboardLayout><Automations /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

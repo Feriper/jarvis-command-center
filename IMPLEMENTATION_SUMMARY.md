@@ -301,3 +301,40 @@ Para dúvidas ou sugestões, consulte a documentação ou abra uma issue no GitH
 ---
 
 **Desenvolvido com ❤️ usando Manus AI**
+
+## 🚀 Novas Funcionalidades Avançadas (Update v2.0)
+
+### 🧠 Memória de Longo Prazo & Knowledge Base
+- ✅ **Extração de Fatos**: O Jarvis agora identifica informações importantes durante a conversa e as salva permanentemente.
+- ✅ **Perfil de Conhecimento**: Base de dados estruturada para preferências do usuário e metas.
+- ✅ **Contexto Persistente**: A IA utiliza fatos aprendidos para personalizar respostas futuras.
+
+### 🎨 Temas HUD Customizáveis
+- ✅ **HUD Selector**: Troca de temas em tempo real no menu do usuário.
+- ✅ **Presets Disponíveis**:
+  - `CIANO`: O visual clássico retro-futurista.
+  - `VERDE`: Estilo Matrix/Terminal clássico.
+  - `VERMELHO`: Modo de alerta/combate.
+  - `OURO`: Interface executiva premium.
+- ✅ **Persistência de Preferência**: O tema escolhido é salvo no perfil do usuário.
+
+### 🎙️ Visualizador de Voz Imersivo
+- ✅ **Real-time Waveform**: Visualizador de ondas sonoras dinâmico quando o microfone está ativo.
+- ✅ **Feedback Visual**: Indicadores de status "OUVINDO" e animações de processamento.
+
+### ⚡ Sistema de Gatilhos e Automações (Triggers)
+- ✅ **Automation Engine**: Nova página dedicada para gerenciar regras automáticas.
+- ✅ **Tipos de Gatilhos**: Performance de Ads, Crescimento Social, Prazos de Tarefas e Agendamentos.
+- ✅ **Ações Inteligentes**: Alertas críticos, notificações e relatórios automáticos.
+- ✅ **Logs de Sistema**: Acompanhamento em tempo real das automações executadas.
+
+### 🤖 Agente de Execução Autônoma
+- ✅ **Autonomous Mode**: Toggle no chat para delegar tarefas complexas ao agente.
+- ✅ **Objective Tracking**: O Jarvis agora pode executar planos de ação de múltiplos passos de forma independente.
+- ✅ **Agent Logs**: Registro detalhado das ações tomadas pelo agente autônomo.
+
+### 📱 Suporte PWA & Mobile
+- ✅ **Installable App**: Suporte completo a Progressive Web App (manifest.json).
+- ✅ **Offline Support**: Service Worker básico para carregamento rápido.
+- ✅ **Mobile Optimized**: Layout e interações refinadas para telas pequenas.
+- ✅ **Home Screen Icon**: Ícones customizados para Android e iOS.

@@ -441,6 +441,92 @@ export const appRouter = router({
       return { predictions: response.choices[0]?.message?.content };
     }),
   }),
+
+  automation: router({
+    listTriggers: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getTriggers(ctx.user.id);
+    }),
+    createTrigger: protectedProcedure
+      .input(z.object({
+        name: z.string(),
+        type: z.enum(["ad_performance", "social_growth", "task_deadline", "scheduled"]),
+        condition: z.any(),
+        action: z.any(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return await db.createTrigger({
+          userId: ctx.user.id,
+          ...input
+        });
+      }),
+    updateTrigger: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        isEnabled: z.boolean().optional(),
+        condition: z.any().optional(),
+        action: z.any().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...updates } = input;
+        return await db.updateTrigger(id, ctx.user.id, updates);
+      }),
+  }),
+
+  memory: router({
+    listFacts: protectedProcedure
+      .input(z.object({ category: z.string().optional() }))
+      .query(async ({ ctx, input }) => {
+        return await db.getMemory(ctx.user.id, input.category);
+      }),
+    saveFact: protectedProcedure
+      .input(z.object({
+        key: z.string(),
+        value: z.string(),
+        category: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return await db.saveMemory({
+          userId: ctx.user.id,
+          ...input
+        });
+      }),
+  }),
+
+  agent: router({
+    listTasks: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getAgentTasks(ctx.user.id);
+    }),
+    createTask: protectedProcedure
+      .input(z.object({
+        objective: z.string(),
+        conversationId: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        return await db.createAgentTask({
+          userId: ctx.user.id,
+          ...input,
+          status: "pending"
+        });
+      }),
+  }),
+
+  user: router({
+    updatePreferences: protectedProcedure
+      .input(z.object({
+        theme: z.enum(["cyan", "green", "red", "gold"]),
+        notificationsEnabled: z.boolean().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const dbInstance = await db.getDb();
+        if (!dbInstance) return null;
+        const { userProfiles } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        return await dbInstance.update(userProfiles)
+          .set({ preferences: input })
+          .where(eq(userProfiles.userId, ctx.user.id));
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

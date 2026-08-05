@@ -23,6 +23,10 @@ export default function JarvisChat() {
   const generateImageMutation = trpc.chat.generateImage.useMutation();
   const analyzeImageMutation = trpc.chat.analyzeImage.useMutation();
   const researchTopicMutation = trpc.chat.researchTopic.useMutation();
+  const createAgentTaskMutation = trpc.agent.createTask.useMutation();
+  const saveFactMutation = trpc.memory.saveFact.useMutation();
+
+  const [isAutonomous, setIsAutonomous] = useState(false);
 
   // Auto-scroll para a última mensagem
   useEffect(() => {
@@ -37,21 +41,43 @@ export default function JarvisChat() {
     setIsLoading(true);
 
     try {
-      const result = await sendMessageMutation.mutateAsync({
-        conversationId: conversationId || undefined,
-        content: input,
-        imageUrl: selectedImage || undefined,
-      });
+      if (isAutonomous) {
+        // Criar tarefa autônoma
+        await createAgentTaskMutation.mutateAsync({
+          objective: input,
+          conversationId: conversationId || undefined,
+        });
+        
+        setMessages((prev) => [...prev, { 
+          role: "assistant", 
+          content: `[AGENT_DEPLOYED] Iniciando execução autônoma para: "${input}". Acompanhe o progresso no log do sistema.` 
+        }]);
+      } else {
+        const result = await sendMessageMutation.mutateAsync({
+          conversationId: conversationId || undefined,
+          content: input,
+          imageUrl: selectedImage || undefined,
+        });
 
-      if (!conversationId && result.conversationId) {
-        setConversationId(result.conversationId);
+        if (!conversationId && result.conversationId) {
+          setConversationId(result.conversationId);
+        }
+
+        // Tentar extrair fatos importantes (simulação de memória)
+        if (input.toLowerCase().includes("lembre-se") || input.toLowerCase().includes("minha meta")) {
+          await saveFactMutation.mutateAsync({
+            key: `fact_${Date.now()}`,
+            value: input,
+            category: "user_preference"
+          });
+        }
+
+        const aiMessage = {
+          role: "assistant",
+          content: typeof result.content === "string" ? result.content : JSON.stringify(result.content),
+        };
+        setMessages((prev) => [...prev, aiMessage]);
       }
-
-      const aiMessage = {
-        role: "assistant",
-        content: typeof result.content === "string" ? result.content : JSON.stringify(result.content),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
       setMessages((prev) => [
@@ -237,15 +263,29 @@ export default function JarvisChat() {
           >
             <Send className="w-4 h-4" />
           </Button>
-          <Button
-            onClick={() => setIsListening(!isListening)}
-            variant={isListening ? "default" : "outline"}
-            size="icon"
-            className={isListening ? "bg-accent" : ""}
-            disabled={isLoading}
-          >
-            <Mic className="w-4 h-4" />
-          </Button>
+          <div className="relative">
+            {isListening && (
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-card border border-accent/50 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg z-10">
+                <div className="voice-visualizer">
+                  <div className="voice-bar"></div>
+                  <div className="voice-bar"></div>
+                  <div className="voice-bar"></div>
+                  <div className="voice-bar"></div>
+                  <div className="voice-bar"></div>
+                </div>
+                <span className="text-[10px] terminal-text animate-pulse">OUVINDO...</span>
+              </div>
+            )}
+            <Button
+              onClick={() => setIsListening(!isListening)}
+              variant={isListening ? "default" : "outline"}
+              size="icon"
+              className={isListening ? "bg-accent pulse-glow" : ""}
+              disabled={isLoading}
+            >
+              <Mic className="w-4 h-4" />
+            </Button>
+          </div>
           <Button
             variant="outline"
             size="icon"
@@ -267,6 +307,15 @@ export default function JarvisChat() {
 
         {/* Ações Rápidas */}
         <div className="flex gap-2 flex-wrap">
+          <Button
+            onClick={() => setIsAutonomous(!isAutonomous)}
+            variant={isAutonomous ? "default" : "outline"}
+            size="sm"
+            className={isAutonomous ? "bg-red-500/20 text-red-400 border-red-500/50" : "border-accent/50 text-accent"}
+          >
+            <Sparkles className="w-3 h-3 mr-1" />
+            Modo Autônomo: {isAutonomous ? "ON" : "OFF"}
+          </Button>
           <Button
             onClick={handleGenerateImage}
             variant="outline"

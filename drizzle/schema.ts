@@ -224,3 +224,42 @@ export const alerts = mysqlTable("alerts", {
 
 export type Alert = typeof alerts.$inferSelect;
 export type InsertAlert = typeof alerts.$inferInsert;
+
+/**
+ * Automation triggers for rule-based actions
+ */
+export const automationTriggers = mysqlTable("automation_triggers", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  type: mysqlEnum("type", ["ad_performance", "social_growth", "task_deadline", "scheduled"]).notNull(),
+  condition: json("condition").notNull(), // e.g., { metric: "ctr", operator: "lt", value: 2 }
+  action: json("action").notNull(), // e.g., { type: "alert", severity: "critical", message: "CTR is low!" }
+  isEnabled: boolean("isEnabled").default(true),
+  lastTriggeredAt: timestamp("lastTriggeredAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AutomationTrigger = typeof automationTriggers.$inferSelect;
+export type InsertAutomationTrigger = typeof automationTriggers.$inferInsert;
+
+/**
+ * Autonomous agent tasks tracking
+ */
+export const agentTasks = mysqlTable("agent_tasks", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  conversationId: int("conversationId"),
+  objective: text("objective").notNull(),
+  status: mysqlEnum("status", ["pending", "running", "completed", "failed"]).default("pending").notNull(),
+  result: longtext("result"),
+  logs: json("logs"),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AgentTask = typeof agentTasks.$inferSelect;
+export type InsertAgentTask = typeof agentTasks.$inferInsert;

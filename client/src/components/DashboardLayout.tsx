@@ -27,7 +27,8 @@ import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
-import { MessageSquare, CheckSquare, Share2, TrendingUp, Bell } from "lucide-react";
+import { MessageSquare, CheckSquare, Share2, TrendingUp, Bell, Palette } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -36,6 +37,7 @@ const menuItems = [
   { icon: Share2, label: "Redes Sociais", path: "/social" },
   { icon: TrendingUp, label: "Ads & Finanças", path: "/ads" },
   { icon: Bell, label: "Alertas", path: "/alerts" },
+  { icon: Zap, label: "Automações", path: "/automations" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -119,6 +121,25 @@ function DashboardLayoutContent({
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
 
+  const [theme, setTheme] = useState<"cyan" | "green" | "red" | "gold">("cyan");
+  const updateThemeMutation = trpc.user.updatePreferences.useMutation();
+
+  useEffect(() => {
+    // Carregar tema das preferências do usuário se existir
+    if (user?.preferences?.theme) {
+      setTheme(user.preferences.theme as any);
+    }
+  }, [user]);
+
+  const handleThemeChange = async (newTheme: "cyan" | "green" | "red" | "gold") => {
+    setTheme(newTheme);
+    try {
+      await updateThemeMutation.mutateAsync({ theme: newTheme });
+    } catch (error) {
+      console.error("Erro ao salvar tema:", error);
+    }
+  };
+
   useEffect(() => {
     if (isCollapsed) {
       setIsResizing(false);
@@ -156,7 +177,7 @@ function DashboardLayoutContent({
   }, [isResizing, setSidebarWidth]);
 
   return (
-    <>
+    <div className={`theme-${theme} min-h-screen flex w-full`}>
       <div className="relative" ref={sidebarRef}>
         <Sidebar
           collapsible="icon"
@@ -224,13 +245,43 @@ function DashboardLayoutContent({
                   </div>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-56 bg-card border-accent/30">
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground terminal-text">
+                  TEMAS HUD
+                </div>
+                <div className="grid grid-cols-2 gap-1 p-2">
+                  <button 
+                    onClick={() => handleThemeChange("cyan")}
+                    className={`h-8 rounded border ${theme === "cyan" ? "border-accent bg-accent/20" : "border-accent/20"} flex items-center justify-center text-[10px]`}
+                  >
+                    CIANO
+                  </button>
+                  <button 
+                    onClick={() => handleThemeChange("green")}
+                    className={`h-8 rounded border ${theme === "green" ? "border-accent bg-accent/20" : "border-accent/20"} flex items-center justify-center text-[10px] text-green-400`}
+                  >
+                    VERDE
+                  </button>
+                  <button 
+                    onClick={() => handleThemeChange("red")}
+                    className={`h-8 rounded border ${theme === "red" ? "border-accent bg-accent/20" : "border-accent/20"} flex items-center justify-center text-[10px] text-red-400`}
+                  >
+                    VERMELHO
+                  </button>
+                  <button 
+                    onClick={() => handleThemeChange("gold")}
+                    className={`h-8 rounded border ${theme === "gold" ? "border-accent bg-accent/20" : "border-accent/20"} flex items-center justify-center text-[10px] text-yellow-400`}
+                  >
+                    OURO
+                  </button>
+                </div>
+                <div className="h-px bg-accent/20 my-1" />
                 <DropdownMenuItem
                   onClick={logout}
-                  className="cursor-pointer text-destructive focus:text-destructive"
+                  className="cursor-pointer text-red-400 focus:text-red-300 focus:bg-red-500/10"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
+                  <span>Encerrar Sessão</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -263,6 +314,6 @@ function DashboardLayoutContent({
         )}
         <main className="flex-1 p-4">{children}</main>
       </SidebarInset>
-    </>
+    </div>
   );
 }

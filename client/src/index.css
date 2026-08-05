@@ -524,3 +524,57 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
+
+/* Temas HUD Customizáveis */
+.theme-cyan {
+  --accent: oklch(1 0.2 280);
+  --accent-foreground: oklch(0.05 0 0);
+  --border: oklch(0.3 0.05 280);
+}
+
+.theme-green {
+  --accent: oklch(0.8 0.2 150);
+  --accent-foreground: oklch(0.05 0 0);
+  --border: oklch(0.3 0.05 150);
+}
+
+.theme-red {
+  --accent: oklch(0.7 0.2 25);
+  --accent-foreground: oklch(0.05 0 0);
+  --border: oklch(0.3 0.05 25);
+}
+
+.theme-gold {
+  --accent: oklch(0.85 0.15 85);
+  --accent-foreground: oklch(0.05 0 0);
+  --border: oklch(0.3 0.05 85);
+}
+
+/* Visualizador de Voz */
+.voice-visualizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 40px;
+}
+
+.voice-bar {
+  width: 3px;
+  background-color: var(--accent);
+  border-radius: 2px;
+  animation: voice-wave 1.2s ease-in-out infinite;
+}
+
+@keyframes voice-wave {
+  0%, 100% { height: 5px; }
+  50% { height: 25px; }
+}
+
+.voice-bar:nth-child(2) { animation-delay: 0.1s; }
+.voice-bar:nth-child(3) { animation-delay: 0.2s; }
+.voice-bar:nth-child(4) { animation-delay: 0.3s; }
+.voice-bar:nth-child(5) { animation-delay: 0.4s; }
+.voice-bar:nth-child(6) { animation-delay: 0.5s; }
+.voice-bar:nth-child(7) { animation-delay: 0.6s; }
+.voice-bar:nth-child(8) { animation-delay: 0.7s; }
