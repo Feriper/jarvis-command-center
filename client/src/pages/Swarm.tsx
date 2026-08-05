@@ -2,15 +2,19 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Shield, Zap, TrendingUp, Users, Plus, Play, Pause } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Bot, Shield, Zap, TrendingUp, Users, Plus, Play, Pause, Send } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
 export default function Swarm() {
   const [agents, setAgents] = useState<any[]>([]);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [objective, setObjective] = useState("");
+  const [swarmPlan, setSwarmPlan] = useState<any>(null);
   
   const { data: agentsList, refetch } = trpc.agent.listAgents.useQuery();
   const deployMutation = trpc.agent.deployAgent.useMutation();
+  const orchestrateSwarmMutation = trpc.proactive.orchestrateSwarm.useMutation();
 
   useEffect(() => {
     if (agentsList) setAgents(agentsList);
@@ -29,8 +33,48 @@ export default function Swarm() {
     }
   };
 
+  const handleOrchestrate = async () => {
+    if (!objective.trim()) return;
+    try {
+      const result = await orchestrateSwarmMutation.mutateAsync({ objective });
+      setSwarmPlan(result);
+      setObjective("");
+      refetch();
+    } catch (error) {
+      console.error("Erro ao orquestrar swarm:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground p-6 space-y-6">
+      {/* Orquestrador */}
+      <Card className="bg-card border-accent/30 p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-accent" />
+          Orquestrador de Objetivos
+        </h2>
+        <div className="flex gap-2">
+          <Input
+            value={objective}
+            onChange={(e) => setObjective(e.target.value)}
+            placeholder="Descreva um objetivo complexo para o enxame..."
+            className="bg-input border-accent/30 text-foreground placeholder-muted-foreground/50"
+            onKeyPress={(e) => e.key === "Enter" && handleOrchestrate()}
+          />
+          <Button
+            onClick={handleOrchestrate}
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            disabled={!objective.trim()}
+          >
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+        {swarmPlan && (
+          <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded">
+            <p className="text-sm text-green-400">{swarmPlan.message}</p>
+          </div>
+        )}
+      </Card>
       <div className="border-b border-accent/30 pb-4 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold neon-glow bracket-left bracket-right">
