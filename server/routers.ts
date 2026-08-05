@@ -4,6 +4,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { proactiveRouter } from "./routers.proactive";
 import { audioRouter } from "./routers.audio";
 import { imageRouter } from "./routers.image";
+import { autonomousRouter } from "./routers.autonomous";
+import { llmOrchestratorRouter } from "./routers.llm-orchestrator";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { z } from "zod";
@@ -14,6 +16,8 @@ export const appRouter = router({
   proactive: proactiveRouter,
   audio: audioRouter,
   image: imageRouter,
+  autonomous: autonomousRouter,
+  llmOrchestrator: llmOrchestratorRouter,
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
