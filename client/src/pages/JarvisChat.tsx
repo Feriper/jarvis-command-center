@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Send, Mic, Volume2, Upload, Sparkles, Copy, Trash2 } from "lucide-react";
+import { Send, Mic, Volume2, Upload, Sparkles, Copy, Trash2, Loader } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useVoiceChat } from "@/hooks/useVoiceChat";
 
 export default function JarvisChat() {
   const [conversationId, setConversationId] = useState<number | null>(null);
@@ -18,6 +19,7 @@ export default function JarvisChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const voiceChat = useVoiceChat({ conversationId: conversationId || undefined });
 
   const sendMessageMutation = trpc.chat.sendMessage.useMutation();
   const generateImageMutation = trpc.chat.generateImage.useMutation();
@@ -246,6 +248,13 @@ export default function JarvisChat() {
           </div>
         )}
 
+        {voiceChat.transcript && (
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded">
+            <p className="text-xs text-blue-400 font-semibold mb-1">Transcrição de Voz:</p>
+            <p className="text-sm text-blue-300">{voiceChat.transcript}</p>
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Input
             value={input}
@@ -277,13 +286,23 @@ export default function JarvisChat() {
               </div>
             )}
             <Button
-              onClick={() => setIsListening(!isListening)}
-              variant={isListening ? "default" : "outline"}
+              onClick={() => {
+                if (voiceChat.isListening) {
+                  voiceChat.stopListening();
+                } else {
+                  voiceChat.startListening();
+                }
+              }}
+              variant={voiceChat.isListening ? "default" : "outline"}
               size="icon"
-              className={isListening ? "bg-accent pulse-glow" : ""}
-              disabled={isLoading}
+              className={voiceChat.isListening ? "bg-accent pulse-glow" : ""}
+              disabled={isLoading || voiceChat.isProcessing}
             >
-              <Mic className="w-4 h-4" />
+              {voiceChat.isProcessing ? (
+                <Loader className="w-4 h-4 animate-spin" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
             </Button>
           </div>
           <Button
@@ -337,13 +356,21 @@ export default function JarvisChat() {
             Pesquisar
           </Button>
           <Button
+            onClick={() => {
+              if (messages.length > 0) {
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage.role === "assistant") {
+                  voiceChat.speak(lastMessage.content, "professional");
+                }
+              }
+            }}
             variant="outline"
             size="sm"
             className="border-accent/50 text-accent hover:bg-accent/10"
-            disabled={isLoading}
+            disabled={isLoading || messages.length === 0}
           >
             <Volume2 className="w-3 h-3 mr-1" />
-            Síntese de Voz
+            Falar Resposta
           </Button>
         </div>
 

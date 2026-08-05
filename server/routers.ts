@@ -2,6 +2,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { proactiveRouter } from "./routers.proactive";
+import { audioRouter } from "./routers.audio";
+import { imageRouter } from "./routers.image";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { z } from "zod";
@@ -10,6 +12,8 @@ import { invokeLLM } from "./_core/llm";
 export const appRouter = router({
   system: systemRouter,
   proactive: proactiveRouter,
+  audio: audioRouter,
+  image: imageRouter,
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
