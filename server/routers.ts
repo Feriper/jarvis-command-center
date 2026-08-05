@@ -6,6 +6,8 @@ import { audioRouter } from "./routers.audio";
 import { imageRouter } from "./routers.image";
 import { autonomousRouter } from "./routers.autonomous";
 import { llmOrchestratorRouter } from "./routers.llm-orchestrator";
+import { codingRouter } from "./routers.coding";
+import { selfHealingRouter } from "./routers.self-healing";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { z } from "zod";
@@ -18,6 +20,8 @@ export const appRouter = router({
   image: imageRouter,
   autonomous: autonomousRouter,
   llmOrchestrator: llmOrchestratorRouter,
+  coding: codingRouter,
+  selfHealing: selfHealingRouter,
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
