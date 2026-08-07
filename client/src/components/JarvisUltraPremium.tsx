@@ -1,11 +1,6 @@
-/**
- * JARVIS Ultra-Premium Chat Interface
- * Glassmorphism Dark Mode com Animações Fluidas e Agência Autônoma
- */
-
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Zap, Brain, Shield, Sparkles } from "lucide-react";
+import { Send, Zap, Brain, Shield, Sparkles, User, Bot, Terminal, Activity, Cpu } from "lucide-react";
 
 interface Message {
   id: string;
@@ -36,7 +31,7 @@ export function JarvisUltraPremium() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, agencySteps]);
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
@@ -52,15 +47,14 @@ export function JarvisUltraPremium() {
     setInput("");
     setIsLoading(true);
 
-    // Simular agência multi-etapas
-    if (input.toLowerCase().includes("pesquise") || input.toLowerCase().includes("analise")) {
+    // Simular agência multi-etapas para comandos complexos
+    if (input.toLowerCase().includes("pesquise") || input.toLowerCase().includes("analise") || input.length > 30) {
       setAgencySteps([
-        { step: 1, action: "🔍 Pesquisando na web...", status: "executing" },
-        { step: 2, action: "🧠 Analisando dados...", status: "pending" },
-        { step: 3, action: "✨ Gerando insights...", status: "pending" },
+        { step: 1, action: "ACESSANDO REDE GLOBAL...", status: "executing" },
+        { step: 2, action: "PROCESSANDO DADOS EM NÚCLEO NEURAL...", status: "pending" },
+        { step: 3, action: "SINTETIZANDO RESPOSTA ESTRATÉGICA...", status: "pending" },
       ]);
 
-      // Simular progresso
       setTimeout(() => {
         setAgencySteps((prev) =>
           prev.map((s, i) => ({
@@ -68,7 +62,7 @@ export function JarvisUltraPremium() {
             status: i === 0 ? "completed" : i === 1 ? "executing" : "pending",
           }))
         );
-      }, 2000);
+      }, 1500);
 
       setTimeout(() => {
         setAgencySteps((prev) =>
@@ -77,235 +71,216 @@ export function JarvisUltraPremium() {
             status: i <= 1 ? "completed" : i === 2 ? "executing" : "pending",
           }))
         );
-      }, 4000);
+      }, 3000);
     }
 
-    // Simular resposta do JARVIS
+    // Resposta do JARVIS
     setTimeout(() => {
       const assistantMessage: Message = {
         id: `msg_${Date.now() + 1}`,
         role: "assistant",
-        content: `Senhor, processei sua solicitação com sucesso. ${
+        content: `Senhor, a análise foi concluída. ${
           deepThinkingEnabled
-            ? "Utilizei raciocínio profundo (System 2) para análise estratégica."
-            : "Resposta gerada com precisão."
+            ? "Executei um ciclo de raciocínio profundo para garantir a máxima precisão estratégica em sua solicitação."
+            : "Processei sua solicitação com eficiência nominal."
         }`,
         timestamp: new Date(),
-        confidence: deepThinkingEnabled ? 95 : 85,
+        confidence: deepThinkingEnabled ? 99 : 92,
+        deepThinking: deepThinkingEnabled
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
       setIsLoading(false);
       setAgencySteps([]);
-    }, 6000);
+    }, 4500);
   };
 
   return (
-    <div className="relative w-full h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
-      {/* Fundo Animado */}
-      <div className="absolute inset-0 opacity-20">
-        <motion.div
-          animate={{
-            background: [
-              "radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%)",
-              "radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.3) 0%, transparent 50%)",
-              "radial-gradient(circle at 50% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%)",
-            ],
-          }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute inset-0"
-        />
+    <div className="relative w-full h-screen bg-black text-blue-100 font-mono overflow-hidden">
+      {/* Background HUD Grid */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute inset-0" style={{ 
+          backgroundImage: 'linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)', 
+          backgroundSize: '50px 50px' 
+        }}></div>
       </div>
 
-      {/* Container Principal */}
-      <div className="relative z-10 flex flex-col h-full">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="backdrop-blur-md bg-white/5 border-b border-white/10 px-6 py-4"
+      {/* Main Container */}
+      <div className="relative z-10 flex flex-col h-full border-x border-blue-500/20 max-w-6xl mx-auto shadow-[0_0_100px_rgba(0,0,0,1)]">
+        
+        {/* Header HUD */}
+        <motion.header 
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="p-6 border-b border-blue-500/30 bg-slate-900/50 backdrop-blur-xl flex items-center justify-between"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <motion.div
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <motion.div 
                 animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                className="w-12 h-12 rounded-full border-2 border-blue-500/50 flex items-center justify-center"
               >
-                <Sparkles className="w-6 h-6 text-blue-400" />
+                <Zap className="w-6 h-6 text-blue-400" />
               </motion.div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">JARVIS Ultra-Premium</h1>
-                <p className="text-sm text-gray-400">Agência Autônoma de Elite</p>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-widest text-blue-400">JARVIS <span className="text-[10px] bg-blue-500/20 px-2 py-0.5 rounded text-blue-300 ml-2">ULTRA-PREMIUM</span></h1>
+              <div className="flex items-center gap-2 text-[10px] text-blue-500/60 uppercase">
+                <Activity className="w-3 h-3" />
+                <span>Núcleo Central: Online</span>
+                <span className="mx-1">|</span>
+                <Cpu className="w-3 h-3" />
+                <span>Processamento: 98%</span>
               </div>
             </div>
+          </div>
 
-            {/* Controles */}
-            <div className="flex items-center gap-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setDeepThinkingEnabled(!deepThinkingEnabled)}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
-                  deepThinkingEnabled
-                    ? "bg-purple-500/30 text-purple-300 border border-purple-400"
-                    : "bg-white/5 text-gray-400 border border-white/10"
-                }`}
-              >
-                <Brain className="w-4 h-4" />
-                {deepThinkingEnabled ? "Raciocínio Profundo" : "Modo Rápido"}
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                className="px-4 py-2 rounded-lg bg-white/5 text-gray-400 border border-white/10 font-semibold flex items-center gap-2"
-              >
-                <Shield className="w-4 h-4" />
-                Privado
-              </motion.button>
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.05, backgroundColor: "rgba(59, 130, 246, 0.2)" }}
+              onClick={() => setDeepThinkingEnabled(!deepThinkingEnabled)}
+              className={`px-4 py-2 rounded border transition-all flex items-center gap-2 text-xs font-bold ${
+                deepThinkingEnabled ? "border-blue-400 text-blue-400 bg-blue-400/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]" : "border-blue-900 text-blue-900"
+              }`}
+            >
+              <Brain className="w-4 h-4" />
+              {deepThinkingEnabled ? "RACIOCÍNIO PROFUNDO: ON" : "MODO RÁPIDO: ON"}
+            </motion.button>
+            <div className="px-4 py-2 border border-blue-900 rounded text-blue-900 text-xs font-bold flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              CRIPTOGRAFIA: AES-256
             </div>
           </div>
-        </motion.div>
+        </motion.header>
 
-        {/* Área de Mensagens */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+        {/* Chat Area */}
+        <main className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
           <AnimatePresence>
             {messages.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="h-full flex flex-col items-center justify-center text-center"
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="h-full flex flex-col items-center justify-center opacity-40"
               >
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                >
-                  <Zap className="w-16 h-16 text-blue-400 mx-auto mb-4" />
-                </motion.div>
-                <h2 className="text-3xl font-bold text-white mb-2">Bem-vindo, Senhor</h2>
-                <p className="text-gray-400 max-w-md">
-                  Sou o JARVIS Ultra-Premium. Pronto para executar suas ordens com agência autônoma,
-                  pesquisa em tempo real e raciocínio estratégico de elite.
-                </p>
+                <Terminal className="w-20 h-20 mb-6 text-blue-500/50" />
+                <p className="text-sm tracking-widest uppercase">Aguardando comando de voz ou texto...</p>
+                <div className="mt-4 flex gap-2">
+                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
+                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                </div>
               </motion.div>
             )}
 
-            {messages.map((msg, idx) => (
+            {messages.map((msg) => (
               <motion.div
                 key={msg.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                initial={{ x: msg.role === "user" ? 20 : -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
               >
-                <div
-                  className={`max-w-2xl px-6 py-4 rounded-2xl backdrop-blur-md border ${
-                    msg.role === "user"
-                      ? "bg-blue-500/20 border-blue-400/30 text-white rounded-br-none"
-                      : "bg-white/5 border-white/10 text-gray-100 rounded-bl-none"
-                  }`}
-                >
-                  <p className="text-sm">{msg.content}</p>
-                  {msg.confidence && (
-                    <p className="text-xs text-gray-400 mt-2">
-                      Confiança: {msg.confidence}% {msg.deepThinking && "| Raciocínio Profundo"}
-                    </p>
-                  )}
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
+                  msg.role === "user" ? "border-blue-500 bg-blue-500/10" : "border-cyan-500 bg-cyan-500/10"
+                }`}>
+                  {msg.role === "user" ? <User className="w-5 h-5 text-blue-400" /> : <Bot className="w-5 h-5 text-cyan-400" />}
+                </div>
+                <div className={`flex flex-col max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                  <div className={`p-5 rounded-2xl border backdrop-blur-md ${
+                    msg.role === "user" 
+                      ? "bg-blue-900/20 border-blue-500/30 rounded-tr-none text-blue-50 shadow-[0_0_20px_rgba(59,130,246,0.1)]" 
+                      : "bg-slate-900/60 border-cyan-500/30 rounded-tl-none text-cyan-50 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
+                  }`}>
+                    <p className="leading-relaxed text-sm">{msg.content}</p>
+                  </div>
+                  <div className="mt-2 flex items-center gap-3 text-[9px] uppercase tracking-tighter text-blue-500/50">
+                    <span>{msg.timestamp.toLocaleTimeString()}</span>
+                    {msg.confidence && <span>• Confiança: {msg.confidence}%</span>}
+                    {msg.deepThinking && <span className="text-purple-400 animate-pulse">• Raciocínio Profundo Ativado</span>}
+                  </div>
                 </div>
               </motion.div>
             ))}
 
-            {/* Passos de Agência */}
+            {/* Autonomous Execution Steps */}
             {agencySteps.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md"
+                className="bg-blue-950/20 border border-blue-500/20 rounded-xl p-6 backdrop-blur-md"
               >
-                <h3 className="text-sm font-semibold text-white mb-4">Execução Autônoma</h3>
-                <div className="space-y-3">
+                <div className="flex items-center gap-3 mb-4">
+                  <Activity className="w-4 h-4 text-blue-400 animate-pulse" />
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-blue-300">Agência Autônoma em Execução</h3>
+                </div>
+                <div className="space-y-4">
                   {agencySteps.map((step) => (
-                    <motion.div
-                      key={step.step}
-                      className="flex items-center gap-3"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                    >
-                      <motion.div
-                        animate={
-                          step.status === "executing"
-                            ? { rotate: 360 }
-                            : step.status === "completed"
-                              ? { scale: 1 }
-                              : { opacity: 0.5 }
-                        }
-                        transition={
-                          step.status === "executing"
-                            ? { duration: 1, repeat: Infinity }
-                            : {}
-                        }
-                        className={`w-5 h-5 rounded-full border-2 ${
-                          step.status === "completed"
-                            ? "bg-green-500/30 border-green-400"
-                            : step.status === "executing"
-                              ? "border-blue-400"
-                              : "border-gray-600"
-                        }`}
-                      />
-                      <span className="text-sm text-gray-300">{step.action}</span>
-                    </motion.div>
+                    <div key={step.step} className="flex items-center gap-4">
+                      <div className={`w-2 h-2 rounded-full ${
+                        step.status === "completed" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" :
+                        step.status === "executing" ? "bg-blue-400 animate-ping" : "bg-slate-700"
+                      }`}></div>
+                      <span className={`text-[10px] ${step.status === "completed" ? "text-green-400" : step.status === "executing" ? "text-blue-300" : "text-slate-500"}`}>
+                        {step.action}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </motion.div>
             )}
 
             {isLoading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center gap-2 text-gray-400"
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full"
-                />
-                <span className="text-sm">JARVIS pensando...</span>
-              </motion.div>
+              <div className="flex items-center gap-3 text-blue-400/50 text-[10px] tracking-widest uppercase ml-14">
+                <div className="flex gap-1">
+                  <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1 h-1 bg-blue-400 rounded-full"></motion.div>
+                  <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1 h-1 bg-blue-400 rounded-full"></motion.div>
+                  <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1 h-1 bg-blue-400 rounded-full"></motion.div>
+                </div>
+                Sincronizando Resposta...
+              </div>
             )}
           </AnimatePresence>
-
           <div ref={messagesEndRef} />
-        </div>
+        </main>
 
-        {/* Input Area */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="backdrop-blur-md bg-white/5 border-t border-white/10 px-6 py-6"
-        >
-          <div className="flex gap-3">
+        {/* Footer Input */}
+        <footer className="p-6 border-t border-blue-500/20 bg-slate-900/50 backdrop-blur-xl">
+          <div className="relative group">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Fale com o JARVIS..."
-              className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:bg-white/15 transition-all"
+              placeholder="DIGITE UM COMANDO PARA O JARVIS..."
+              className="w-full bg-black/60 border border-blue-900/50 rounded-xl py-5 px-6 pl-14 text-blue-100 placeholder-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-400 transition-all text-sm tracking-widest"
             />
+            <Terminal className="absolute left-5 top-5 w-5 h-5 text-blue-900 group-focus-within:text-blue-500 transition-colors" />
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleSendMessage}
               disabled={isLoading || !input.trim()}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all"
+              className="absolute right-3 top-2.5 bottom-2.5 px-6 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900/30 text-white rounded-lg flex items-center gap-2 font-black text-xs transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]"
             >
               <Send className="w-4 h-4" />
-              Enviar
+              EXECUTAR
             </motion.button>
           </div>
-        </motion.div>
+          <div className="mt-4 flex justify-between items-center text-[8px] text-blue-900 uppercase tracking-tighter">
+            <span>Sessão Protegida por Stark Industries</span>
+            <div className="flex gap-4">
+              <span>Ping: 14ms</span>
+              <span>Buffer: Limpo</span>
+              <span>Memória: Persistente</span>
+            </div>
+          </div>
+        </footer>
       </div>
+      
+      {/* Decorative HUD Elements */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
+      <div className="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
     </div>
   );
 }
