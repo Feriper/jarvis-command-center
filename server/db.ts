@@ -301,3 +301,10 @@ export async function saveProjection(projection: InsertFinancialProjection) {
   const [result] = await db.insert(financialProjections).values(projection);
   return result;
 }
+
+export async function createAlert(alert: InsertAlert) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(alerts).values(alert);
+  return result;
+}

@@ -1,7 +1,8 @@
 {
   "version": 2,
   "name": "jarvis-command-center",
-  "buildCommand": "pnpm build",
+  "framework": "vite",
+  "buildCommand": "vite build",
   "outputDirectory": "dist/public",
   "rewrites": [
     {
