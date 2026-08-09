@@ -10,6 +10,7 @@ import { codingRouter } from "./routers.coding";
 import { selfHealingRouter } from "./routers.self-healing";
 import { jarvisUnifiedRouter } from "./routers.jarvis-unified";
 import { contentRouter } from "./routers.content";
+import { actionsRouter } from "./routers.actions";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { z } from "zod";
@@ -26,6 +27,7 @@ export const appRouter = router({
   selfHealing: selfHealingRouter,
   jarvisUnified: jarvisUnifiedRouter,
   content: contentRouter,
+  actions: actionsRouter,
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

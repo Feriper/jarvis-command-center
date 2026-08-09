@@ -15,7 +15,8 @@ import {
   aiAgents, InsertAiAgent,
   sentimentAnalysis, InsertSentimentAnalysis,
   financialProjections, InsertFinancialProjection,
-  contentDrafts, InsertContentDraft
+  contentDrafts, InsertContentDraft,
+  assistantActions, InsertAssistantAction
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -186,6 +187,25 @@ export async function updateContentDraft(draftId: number, userId: number, update
   const db = await getDb();
   if (!db) return null;
   return await db.update(contentDrafts).set(updates).where(and(eq(contentDrafts.id, draftId), eq(contentDrafts.userId, userId)));
+}
+
+export async function listAssistantActions(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(assistantActions).where(eq(assistantActions.userId, userId)).orderBy(desc(assistantActions.createdAt));
+}
+
+export async function createAssistantAction(action: InsertAssistantAction) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(assistantActions).values(action);
+  return result;
+}
+
+export async function updateAssistantAction(actionId: number, userId: number, updates: Partial<InsertAssistantAction>) {
+  const db = await getDb();
+  if (!db) return null;
+  return await db.update(assistantActions).set(updates).where(and(eq(assistantActions.id, actionId), eq(assistantActions.userId, userId)));
 }
 
 // Ads methods

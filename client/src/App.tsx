@@ -9,19 +9,25 @@ import Home from "./pages/Home";
 import JarvisChat from "./pages/JarvisChat";
 import { JarvisUltraPremium } from "./components/JarvisUltraPremium";
 import { JarvisAuthGate } from "./components/JarvisAuthGate";
-import React, { useState } from "react";
+import React from "react";
+import { useAuth } from "./_core/hooks/useAuth";
 import Tasks from "./pages/Tasks";
 import SocialMedia from "./pages/SocialMedia";
 import Ads from "./pages/Ads";
 import Alerts from "./pages/Alerts";
 import Automations from "./pages/Automations";
+import Actions from "./pages/Actions";
 import Swarm from "./pages/Swarm";
 
 function Router() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div className="min-h-screen bg-black text-blue-300 flex items-center justify-center font-mono">Validando sessão oficial...</div>;
+  }
 
   if (!isAuthenticated) {
-    return <JarvisAuthGate onAuthSuccess={() => setIsAuthenticated(true)} />;
+    return <JarvisAuthGate />;
   }
 
   return (
@@ -34,6 +40,7 @@ function Router() {
       <Route path={"/ads"} component={() => <DashboardLayout><Ads /></DashboardLayout>} />
       <Route path={"/alerts"} component={() => <DashboardLayout><Alerts /></DashboardLayout>} />
       <Route path={"/automations"} component={() => <DashboardLayout><Automations /></DashboardLayout>} />
+      <Route path={"/actions"} component={() => <DashboardLayout><Actions /></DashboardLayout>} />
       <Route path={"/swarm"} component={() => <DashboardLayout><Swarm /></DashboardLayout>} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

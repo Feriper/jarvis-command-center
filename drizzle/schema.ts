@@ -201,6 +201,27 @@ export type ContentDraft = typeof contentDrafts.$inferSelect;
 export type InsertContentDraft = typeof contentDrafts.$inferInsert;
 
 /**
+ * Ações propostas pelo Jarvis aguardando confirmação explícita.
+ * A tabela não executa transferências, publicações ou mensagens.
+ */
+export const assistantActions = mysqlTable("assistant_actions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: mysqlEnum("type", ["task", "message", "publish", "financial", "other"]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  payload: json("payload"),
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "executed", "cancelled"]).default("pending").notNull(),
+  approvedAt: timestamp("approvedAt"),
+  executedAt: timestamp("executedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AssistantAction = typeof assistantActions.$inferSelect;
+export type InsertAssistantAction = typeof assistantActions.$inferInsert;
+
+/**
  * Ad campaigns tracking (Google Ads, Meta Ads, etc)
  */
 export const adCampaigns = mysqlTable("ad_campaigns", {
