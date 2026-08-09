@@ -62,3 +62,9 @@ Railway cobra uso por segundo e pode cobrar egress, volumes e armazenamento de o
 [4]: [Render Deploy for Free](https://render.com/docs/free)
 [5]: [Render Pricing](https://render.com/pricing)
 [6]: [Render Background Workers](https://render.com/docs/background-workers)
+
+## Diagnóstico do deploy em 09/08/2026
+
+O Railway inicialmente falhou no build por não encontrar `patches/wouter@3.7.1.patch`; a correção do Dockerfile foi enviada. Depois, o container compilou, mas caiu no runtime com erro de pacote `vite` ausente, porque o Docker instala apenas dependências de produção. A correção `b53507c` passou a carregar Vite somente em modo de desenvolvimento. O Railway chegou a marcar o deploy como `ACTIVE`, mas o domínio público `https://jarvis-command-center-production-dccd.up.railway.app/health` retornou `502 Bad Gateway`; poucos minutos depois o Railway voltou a marcar o deployment `fix production startup without vite runtime` como `CRASHED`. Ainda é necessário ler o log desse deployment para corrigir o novo erro de runtime ou configuração de porta/ambiente.
+
+Fonte externa: painel autenticado do Railway, projeto `jarvis-command-center`, deployment e domínio acima.
