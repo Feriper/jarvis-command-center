@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
+import { buildContentPackage } from "./content-package";
 
 const rightsReviewSchema = z.object({
   originalContributionConfirmed: z.boolean(),
@@ -41,6 +42,34 @@ export const contentRouter = router({
 
       if (!result) throw new Error("Banco de dados indisponível para salvar o rascunho.");
       return { success: true, draftId: result.insertId };
+    }),
+
+  preparePackage: protectedProcedure
+    .input(z.object({ draftId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const draft = await db.getContentDraft(input.draftId, ctx.user.id);
+      if (!draft) throw new Error("Rascunho não encontrado.");
+      if (draft.status !== "draft") throw new Error("Somente rascunhos podem gerar um pacote.");
+
+      const sourceUrls = Array.isArray(draft.sourceUrls)
+        ? draft.sourceUrls.filter((value): value is string => typeof value === "string")
+        : [];
+      const contentPackage = buildContentPackage({
+        title: draft.title,
+        description: draft.description,
+        script: draft.script,
+        sourceUrls,
+        platform: draft.platform,
+      });
+      await db.updateContentDraft(input.draftId, ctx.user.id, {
+        description: contentPackage.description,
+        tags: contentPackage.tags,
+        captions: contentPackage.captions,
+        thumbnailPrompt: contentPackage.thumbnailPrompt,
+        productionNotes: contentPackage.productionNotes,
+        packageStatus: "ready",
+      });
+      return { success: true, packageStatus: "ready" as const, contentPackage };
     }),
 
   reviewRights: protectedProcedure

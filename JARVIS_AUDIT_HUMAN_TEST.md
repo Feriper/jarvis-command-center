@@ -112,3 +112,14 @@ A migração aplicável está em `drizzle/0002_content_drafts.sql`. Ela deve ser
 ## Validação após a melhoria
 
 A checagem TypeScript terminou sem erros. A suíte passou com **5 arquivos e 17 testes**, incluindo três testes novos para criação pendente, bloqueio de aprovação sem revisão e aprovação somente após as confirmações. O build de produção terminou com sucesso; permanecem apenas avisos não bloqueantes sobre variáveis de analytics ausentes e chunks do cliente maiores que 500 kB.
+
+
+## Modo de produção e revisão aplicado
+
+Foi adicionado o gerador determinístico `server/content-package.ts`, acionado por `content.preparePackage`. Ele produz descrição com fontes registradas, tags, legendas no formato SRT, prompt de thumbnail e checklist de produção. O pacote fica associado ao rascunho e recebe `packageStatus = ready`, mas continua sem publicação externa.
+
+O schema e a migração foram ampliados com tags, legendas, prompt de thumbnail, notas de produção, URLs de vídeo e thumbnail e estado do pacote. Também foi incluído `scripts/render-content-package.sh`, que monta um MP4 vertical H.264/AAC com FFmpeg a partir de imagens, áudio e legendas fornecidos pelo usuário. O script foi validado com um vídeo sintético local.
+
+A documentação operacional está em `CONTENT_PRODUCTION.md`. O fluxo recomendado é criar rascunho, preparar pacote, fornecer mídia própria/licenciada, revisar direitos, aprovar e fazer upload manual privado ou não listado no YouTube Studio.
+
+A validação desta rodada terminou com **6 arquivos e 18 testes aprovados**, TypeScript sem erros e renderização local de vídeo concluída. A automação não gera renda, não publica sozinha e não substitui revisão humana.
