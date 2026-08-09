@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Activity, Shield, Cpu, Wifi, Zap, Terminal, Layers } from "lucide-react";
 
 interface HUDProps {
@@ -75,9 +75,9 @@ export function JarvisHUD({ status, workload, activeObjectives }: HUDProps) {
           <span>LOGS_SISTEMA</span>
         </div>
         <div className="space-y-1">
-          <div>> INIT_NEURAL_LINK...</div>
-          <div>> SYNC_WEB_SEARCH...</div>
-          <div>> MENTALITY_V4_LOADED</div>
+          <div>{">"} INIT_NEURAL_LINK...</div>
+          <div>{">"} SYNC_WEB_SEARCH...</div>
+          <div>{">"} MENTALITY_V4_LOADED</div>
           <motion.div 
             animate={{ opacity: [0, 1, 0] }}
             transition={{ repeat: Infinity, duration: 1 }}
