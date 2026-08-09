@@ -18,6 +18,7 @@ import { createReflectionEngine } from "./jarvis-reflection-engine";
 import { createObjectiveManager } from "./jarvis-objective-manager";
 import { createToolDiscovery } from "./jarvis-tool-discovery";
 import { createGuardianProtocol } from "./jarvis-guardian-protocol";
+import { createNetSync } from "./jarvis-net-sync";
 
 /**
  * Router unificado do JARVIS com capacidades "Além da IA" (Beyond)
@@ -47,6 +48,7 @@ export const jarvisUnifiedRouter = router({
         const objectiveManager = createObjectiveManager(ctx.user.id);
         const toolDiscovery = createToolDiscovery(ctx.user.id);
         const guardian = createGuardianProtocol(ctx.user.id);
+        const netSync = createNetSync(ctx.user.id);
 
         // 2. Protocolo Guardian: Verificar Segurança da Entrada
         const threat = await guardian.monitorActivity(input.content, "User Chat");
@@ -99,8 +101,19 @@ export const jarvisUnifiedRouter = router({
         let aiContent = "";
         let reflectionSteps: any[] = [];
         let confidenceScore = 100;
+        let sources: string[] = [];
 
-        if (input.deepThinking) {
+        // 5.1 Detectar necessidade de busca na web
+        const needsSearch = input.content.toLowerCase().includes("pesquise") || 
+                           input.content.toLowerCase().includes("busque") ||
+                           input.content.toLowerCase().includes("notícias") ||
+                           input.content.toLowerCase().includes("quem é");
+
+        if (needsSearch) {
+          const searchResult = await netSync.performStrategicSearch(input.content);
+          aiContent = searchResult.content;
+          sources = searchResult.sources;
+        } else if (input.deepThinking) {
           const deepResult = await reflectionEngine.thinkDeeply(input.content, fullContext, systemPrompt);
           aiContent = deepResult.finalResponse;
           reflectionSteps = deepResult.steps;
@@ -158,6 +171,7 @@ export const jarvisUnifiedRouter = router({
           toolsDiscovered: learnedTools.length,
           memoryLoaded: memoryWindow.importantFacts.length,
           objectivesActive: activeObjectives.length,
+          sources,
         };
       } catch (error) {
         console.error("[JARVIS_UNIFIED] Erro Beyond:", error);

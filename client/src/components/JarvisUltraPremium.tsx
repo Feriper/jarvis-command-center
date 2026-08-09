@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Zap, Brain, Shield, Sparkles, User, Bot, Terminal, Activity, Cpu } from "lucide-react";
+import { Send, Zap, Brain, Shield, Sparkles, User, Bot, Terminal, Activity, Cpu, Globe, Search, ArrowRight } from "lucide-react";
 import { trpc } from "../lib/trpc";
+import { JarvisHUD } from "./JarvisHUD";
 
 interface Message {
   id: string;
@@ -10,6 +11,7 @@ interface Message {
   timestamp: Date;
   deepThinking?: boolean;
   confidence?: number;
+  sources?: string[];
 }
 
 interface AgencyStep {
@@ -25,9 +27,9 @@ export function JarvisUltraPremium() {
   const [agencySteps, setAgencySteps] = useState<AgencyStep[]>([]);
   const [deepThinkingEnabled, setDeepThinkingEnabled] = useState(false);
   const [conversationId, setConversationId] = useState<number | undefined>(undefined);
+  const [systemStatus, setSystemStatus] = useState<"nominal" | "processing" | "alert">("nominal");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // tRPC Mutation para enviar mensagem
   const sendMessageMutation = trpc.jarvisUnified.sendMessageWithContext.useMutation();
 
   const scrollToBottom = () => {
@@ -52,23 +54,22 @@ export function JarvisUltraPremium() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setSystemStatus("processing");
 
-    // Simular passos de agência para dar feedback visual de "trabalho"
+    // Simular passos de agência com foco em Pesquisa e Conectividade
     setAgencySteps([
-      { step: 1, action: "ACESSANDO REDE GLOBAL...", status: "executing" },
-      { step: 2, action: "PROCESSANDO DADOS EM NÚCLEO NEURAL...", status: "pending" },
-      { step: 3, action: "SINTETIZANDO RESPOSTA ESTRATÉGICA...", status: "pending" },
+      { step: 1, action: "INICIALIZANDO PROTOCOLO NET-SYNC...", status: "executing" },
+      { step: 2, action: "VARRENDO FONTES GLOBAIS (SEARCH_MODE)...", status: "pending" },
+      { step: 3, action: "SINTETIZANDO CONHECIMENTO STARK...", status: "pending" },
     ]);
 
     try {
-      // Chamada real ao backend JARVIS Beyond
       const response = await sendMessageMutation.mutateAsync({
         content: userContent,
         conversationId: conversationId,
         deepThinking: deepThinkingEnabled,
       });
 
-      // Atualizar passos de agência como concluídos
       setAgencySteps((prev) => prev.map(s => ({ ...s, status: "completed" })));
 
       const assistantMessage: Message = {
@@ -77,7 +78,8 @@ export function JarvisUltraPremium() {
         content: response.content,
         timestamp: new Date(),
         confidence: response.confidenceScore,
-        deepThinking: response.deepThinkingPerformed
+        deepThinking: response.deepThinkingPerformed,
+        sources: (response as any).sources || []
       };
 
       if (response.conversationId) {
@@ -85,149 +87,158 @@ export function JarvisUltraPremium() {
       }
 
       setMessages((prev) => [...prev, assistantMessage]);
+      setSystemStatus("nominal");
     } catch (error) {
       console.error("Erro JARVIS:", error);
+      setSystemStatus("alert");
       const errorMessage: Message = {
         id: `msg_err_${Date.now()}`,
         role: "assistant",
-        content: "Senhor, detectei uma falha na conexão com o núcleo central. Por favor, verifique os protocolos de rede.",
+        content: "Senhor, detectei uma falha na conexão com o núcleo central. O Protocolo Guardian sugere uma reinicialização de rede.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
-      // Pequeno delay para o usuário ver os passos concluídos antes de sumirem
-      setTimeout(() => setAgencySteps([]), 1000);
+      setTimeout(() => setAgencySteps([]), 1500);
     }
   };
 
   return (
     <div className="relative w-full h-screen bg-black text-blue-100 font-mono overflow-hidden">
-      {/* Background HUD Grid */}
+      {/* JARVIS HUD - Camada Superior de UI */}
+      <JarvisHUD 
+        status={systemStatus} 
+        workload={isLoading ? 85 : 12} 
+        activeObjectives={3} 
+      />
+
+      {/* Background HUD Grid & Scanline */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute inset-0" style={{ 
-          backgroundImage: 'linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)', 
-          backgroundSize: '50px 50px' 
+          backgroundImage: 'linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px)', 
+          backgroundSize: '40px 40px' 
         }}></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent animate-[scanline_8s_linear_infinite]"></div>
       </div>
 
       {/* Main Container */}
-      <div className="relative z-10 flex flex-col h-full border-x border-blue-500/20 max-w-6xl mx-auto shadow-[0_0_100px_rgba(0,0,0,1)]">
+      <div className="relative z-10 flex flex-col h-full max-w-5xl mx-auto border-x border-blue-500/10">
         
-        {/* Header HUD */}
+        {/* Header HUD - Minimalista e Funcional */}
         <motion.header 
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="p-6 border-b border-blue-500/30 bg-slate-900/50 backdrop-blur-xl flex items-center justify-between"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="px-8 py-6 flex items-center justify-between bg-black/40 backdrop-blur-sm border-b border-blue-500/10"
         >
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <motion.div 
-                animate={{ rotate: 360 }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                className="w-12 h-12 rounded-full border-2 border-blue-500/50 flex items-center justify-center"
-              >
-                <Zap className="w-6 h-6 text-blue-400" />
-              </motion.div>
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>
-            </div>
-            <div>
-              <h1 className="text-xl font-black tracking-widest text-blue-400">JARVIS <span className="text-[10px] bg-blue-500/20 px-2 py-0.5 rounded text-blue-300 ml-2">ULTRA-PREMIUM</span></h1>
-              <div className="flex items-center gap-2 text-[10px] text-blue-500/60 uppercase">
-                <Activity className="w-3 h-3" />
-                <span>Núcleo Central: Online</span>
-                <span className="mx-1">|</span>
-                <Cpu className="w-3 h-3" />
-                <span>Processamento: 98%</span>
-              </div>
-            </div>
+            <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
+            <h1 className="text-lg font-black tracking-[0.3em] text-blue-400">JARVIS <span className="text-[9px] text-blue-500/50 tracking-widest">NET-SYNC V4</span></h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 text-[9px] text-blue-500/40">
+              <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> WEB_SYNC: ON</span>
+              <span className="flex items-center gap-1"><Brain className="w-3 h-3" /> NEURAL: STABLE</span>
+            </div>
             <motion.button
-              whileHover={{ scale: 1.05, backgroundColor: "rgba(59, 130, 246, 0.2)" }}
+              whileHover={{ scale: 1.05, borderColor: "rgba(59, 130, 246, 0.5)" }}
               onClick={() => setDeepThinkingEnabled(!deepThinkingEnabled)}
-              className={`px-4 py-2 rounded border transition-all flex items-center gap-2 text-xs font-bold ${
-                deepThinkingEnabled ? "border-blue-400 text-blue-400 bg-blue-400/10 shadow-[0_0_15px_rgba(59,130,246,0.3)]" : "border-blue-900 text-blue-900"
+              className={`px-3 py-1.5 border rounded text-[10px] font-bold transition-all ${
+                deepThinkingEnabled ? "border-blue-400 text-blue-400 bg-blue-400/5" : "border-blue-900 text-blue-900"
               }`}
             >
-              <Brain className="w-4 h-4" />
-              {deepThinkingEnabled ? "RACIOCÍNIO PROFUNDO: ON" : "MODO RÁPIDO: ON"}
+              {deepThinkingEnabled ? "DEEP_THINK: ON" : "FAST_MODE: ON"}
             </motion.button>
-            <div className="px-4 py-2 border border-blue-900 rounded text-blue-900 text-xs font-bold flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              CRIPTOGRAFIA: AES-256
-            </div>
           </div>
         </motion.header>
 
-        {/* Chat Area */}
-        <main className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
+        {/* Chat Area - Imersiva */}
+        <main className="flex-1 overflow-y-auto px-8 py-10 space-y-10 scrollbar-hide">
           <AnimatePresence>
             {messages.length === 0 && (
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="h-full flex flex-col items-center justify-center opacity-40"
+                className="h-full flex flex-col items-center justify-center"
               >
-                <Terminal className="w-20 h-20 mb-6 text-blue-500/50" />
-                <p className="text-sm tracking-widest uppercase">Aguardando comando de voz ou texto...</p>
-                <div className="mt-4 flex gap-2">
-                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
-                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                <div className="relative mb-8">
+                  <Search className="w-16 h-16 text-blue-500/20" />
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 4 }}
+                    className="absolute inset-0 border-2 border-blue-500/10 rounded-full scale-150"
+                  ></motion.div>
                 </div>
+                <p className="text-[11px] tracking-[0.5em] uppercase text-blue-500/40 text-center">
+                  SISTEMA PRONTO PARA PESQUISA E EXECUÇÃO
+                </p>
               </motion.div>
             )}
 
             {messages.map((msg) => (
               <motion.div
                 key={msg.id}
-                initial={{ x: msg.role === "user" ? 20 : -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex gap-6 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
-                  msg.role === "user" ? "border-blue-500 bg-blue-500/10" : "border-cyan-500 bg-cyan-500/10"
+                <div className={`w-8 h-8 rounded border flex items-center justify-center shrink-0 ${
+                  msg.role === "user" ? "border-blue-500/40 bg-blue-500/5" : "border-cyan-500/40 bg-cyan-500/5"
                 }`}>
-                  {msg.role === "user" ? <User className="w-5 h-5 text-blue-400" /> : <Bot className="w-5 h-5 text-cyan-400" />}
+                  {msg.role === "user" ? <User className="w-4 h-4 text-blue-400" /> : <Bot className="w-4 h-4 text-cyan-400" />}
                 </div>
-                <div className={`flex flex-col max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                  <div className={`p-5 rounded-2xl border backdrop-blur-md ${
+                
+                <div className={`flex flex-col max-w-[85%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                  <div className={`p-6 border bg-black/40 backdrop-blur-xl ${
                     msg.role === "user" 
-                      ? "bg-blue-900/20 border-blue-500/30 rounded-tr-none text-blue-50 shadow-[0_0_20px_rgba(59,130,246,0.1)]" 
-                      : "bg-slate-900/60 border-cyan-500/30 rounded-tl-none text-cyan-50 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
+                      ? "border-blue-500/20 rounded-tr-none text-blue-100" 
+                      : "border-cyan-500/20 rounded-tl-none text-cyan-50"
                   }`}>
                     <p className="leading-relaxed text-sm whitespace-pre-wrap">{msg.content}</p>
+                    
+                    {msg.sources && msg.sources.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+                        <p className="text-[9px] text-blue-500/50 uppercase tracking-widest">Fontes Verificadas:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {msg.sources.map((source, i) => (
+                            <a key={i} href={source} target="_blank" rel="noreferrer" className="text-[10px] text-blue-400 hover:underline flex items-center gap-1">
+                              <Globe className="w-3 h-3" /> FONT_{i+1}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-2 flex items-center gap-3 text-[9px] uppercase tracking-tighter text-blue-500/50">
+                  
+                  <div className="mt-2 flex items-center gap-4 text-[8px] uppercase tracking-widest text-blue-500/30">
                     <span>{msg.timestamp.toLocaleTimeString()}</span>
-                    {msg.confidence && <span>• Confiança: {msg.confidence}%</span>}
-                    {msg.deepThinking && <span className="text-purple-400 animate-pulse">• Raciocínio Profundo Ativado</span>}
+                    {msg.confidence && <span>CONFIDÊNCIA: {msg.confidence}%</span>}
+                    {msg.deepThinking && <span className="text-blue-400 animate-pulse">REFLEXÃO_ATIVA</span>}
                   </div>
                 </div>
               </motion.div>
             ))}
 
-            {/* Autonomous Execution Steps */}
+            {/* Agência Autônoma HUD Element */}
             {agencySteps.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-blue-950/20 border border-blue-500/20 rounded-xl p-6 backdrop-blur-md"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="ml-14 p-6 border-l-2 border-blue-500/20 bg-blue-500/5 space-y-4"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <Activity className="w-4 h-4 text-blue-400 animate-pulse" />
-                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-blue-300">Agência Autônoma em Execução</h3>
+                <div className="flex items-center gap-3">
+                  <Activity className="w-3 h-3 text-blue-400 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-blue-300">Execução em Tempo Real</span>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {agencySteps.map((step) => (
-                    <div key={step.step} className="flex items-center gap-4">
-                      <div className={`w-2 h-2 rounded-full ${
+                    <div key={step.step} className="flex items-center gap-3">
+                      <div className={`w-1.5 h-1.5 rounded-full ${
                         step.status === "completed" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" :
-                        step.status === "executing" ? "bg-blue-400 animate-ping" : "bg-slate-700"
+                        step.status === "executing" ? "bg-blue-400 animate-ping" : "bg-white/10"
                       }`}></div>
-                      <span className={`text-[10px] ${step.status === "completed" ? "text-green-400" : step.status === "executing" ? "text-blue-300" : "text-slate-500"}`}>
+                      <span className={`text-[9px] tracking-widest ${step.status === "completed" ? "text-green-400/70" : step.status === "executing" ? "text-blue-300" : "text-white/20"}`}>
                         {step.action}
                       </span>
                     </div>
@@ -235,58 +246,48 @@ export function JarvisUltraPremium() {
                 </div>
               </motion.div>
             )}
-
-            {isLoading && !agencySteps.length && (
-              <div className="flex items-center gap-3 text-blue-400/50 text-[10px] tracking-widest uppercase ml-14">
-                <div className="flex gap-1">
-                  <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1 h-1 bg-blue-400 rounded-full"></motion.div>
-                  <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1 h-1 bg-blue-400 rounded-full"></motion.div>
-                  <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1 h-1 bg-blue-400 rounded-full"></motion.div>
-                </div>
-                Sincronizando Resposta...
-              </div>
-            )}
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </main>
 
-        {/* Footer Input */}
-        <footer className="p-6 border-t border-blue-500/20 bg-slate-900/50 backdrop-blur-xl">
+        {/* Input Terminal - Design Industrial Stark */}
+        <footer className="px-8 py-8 border-t border-blue-500/10 bg-black/60">
           <div className="relative group">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="DIGITE UM COMANDO PARA O JARVIS..."
-              className="w-full bg-black/60 border border-blue-900/50 rounded-xl py-5 px-6 pl-14 text-blue-100 placeholder-blue-900 focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-400 transition-all text-sm tracking-widest"
-            />
-            <Terminal className="absolute left-5 top-5 w-5 h-5 text-blue-900 group-focus-within:text-blue-500 transition-colors" />
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleSendMessage}
-              disabled={isLoading || !input.trim()}
-              className="absolute right-3 top-2.5 bottom-2.5 px-6 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900/30 text-white rounded-lg flex items-center gap-2 font-black text-xs transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]"
-            >
-              <Send className="w-4 h-4" />
-              {isLoading ? "PROCESSANDO" : "EXECUTAR"}
-            </motion.button>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl blur opacity-30 group-focus-within:opacity-100 transition duration-1000"></div>
+            <div className="relative flex items-center bg-black border border-blue-500/20 rounded-xl overflow-hidden">
+              <div className="pl-6 text-blue-500/40">
+                <Terminal className="w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="INSIRA COMANDO OU CONSULTA ESTRATÉGICA..."
+                className="w-full bg-transparent py-5 px-4 text-blue-100 placeholder-blue-900/50 focus:outline-none text-xs tracking-widest"
+              />
+              <motion.button
+                whileHover={{ backgroundColor: "rgba(59, 130, 246, 0.1)" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSendMessage}
+                disabled={isLoading || !input.trim()}
+                className="pr-6 pl-4 py-5 flex items-center gap-3 text-blue-400 disabled:text-blue-900 transition-colors group/btn"
+              >
+                <span className="text-[10px] font-black tracking-widest group-hover/btn:mr-1 transition-all">EXECUTAR</span>
+                <ArrowRight className="w-4 h-4" />
+              </motion.button>
+            </div>
           </div>
-          <div className="mt-4 flex justify-between items-center text-[8px] text-blue-900 uppercase tracking-tighter">
-            <span>Sessão Protegida por Stark Industries</span>
-            <div className="flex gap-4">
-              <span>Ping: 14ms</span>
-              <span>Buffer: Limpo</span>
-              <span>Memória: Persistente</span>
+          
+          <div className="mt-4 flex justify-between items-center text-[7px] text-blue-900 uppercase tracking-widest">
+            <span>STARK_INDUSTRIES // NEURAL_LINK_ESTABLISHED</span>
+            <div className="flex gap-6">
+              <span>LATÊNCIA: 12ms</span>
+              <span>CRIPTOGRAFIA: AES_256_ACTIVE</span>
             </div>
           </div>
         </footer>
       </div>
-      
-      {/* Decorative HUD Elements */}
-      <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
-      <div className="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
     </div>
   );
 }
