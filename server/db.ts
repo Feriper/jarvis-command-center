@@ -195,7 +195,9 @@ export async function getMemory(userId: number, category?: string) {
     .where(and(...conditions));
 }
 
-export async function saveMemory(memory: InsertUserMemory) {
+export type MemoryInput = InsertUserMemory & { importance?: number };
+
+export async function saveMemory(memory: MemoryInput) {
   const db = await getDb();
   if (!db) return null;
   const [result] = await db.insert(userMemory).values(memory).onDuplicateKeyUpdate({
@@ -302,9 +304,16 @@ export async function saveProjection(projection: InsertFinancialProjection) {
   return result;
 }
 
-export async function createAlert(alert: InsertAlert) {
+export async function createAlert(alert: InsertAlert | (Omit<InsertAlert, "type"> & { type: string })) {
   const db = await getDb();
   if (!db) return null;
-  const [result] = await db.insert(alerts).values(alert);
+  const supportedTypes: InsertAlert["type"][] = ["ad_drop", "task_overdue", "social_alert", "system_alert"];
+  const normalizedAlert: InsertAlert = {
+    ...alert,
+    type: supportedTypes.includes(alert.type as InsertAlert["type"])
+      ? (alert.type as InsertAlert["type"])
+      : "system_alert",
+  };
+  const [result] = await db.insert(alerts).values(normalizedAlert);
   return result;
 }

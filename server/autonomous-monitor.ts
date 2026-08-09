@@ -99,8 +99,8 @@ export class AutonomousMonitor {
       for (const campaign of campaigns) {
         const metrics = await db.getAdMetrics(campaign.id);
         const anomalies = await dbProactive.detectCampaignAnomalies(
-          metrics,
-          this.config.alertThresholds
+          campaign.id,
+          this.config.alertThresholds.ctrDropPercent / 100
         );
 
         if (anomalies && anomalies.length > 0) {
@@ -109,7 +109,7 @@ export class AutonomousMonitor {
             result.alerts.push({
               type: "ads_anomaly",
               severity: "high",
-              message: `Anomalia detectada em ${campaign.name}: ${anomaly}`,
+              message: `Anomalia detectada em ${campaign.campaignName}: ${anomaly}`,
             });
           }
         }
@@ -267,9 +267,10 @@ export class AutonomousMonitor {
         await db.createAlert({
           userId: this.config.userId,
           type: alert.type,
+          title: "Alerta crítico do monitor autônomo",
           message: alert.message,
           severity: "critical",
-          isRead: false,
+          read: false,
         });
       }
 

@@ -29,32 +29,30 @@ async function runIntegrationTest() {
     console.log("--- TESTE 1: Enviar mensagem com contexto de memória ---");
     const response1 = await caller.sendMessageWithContext({
       content: "Olá JARVIS, lembre-se que minha meta para este trimestre é aumentar o ROI em 20%.",
-      includeProactiveInsights: true,
     });
 
     console.log("Resposta do JARVIS:");
     console.log(response1.content);
-    console.log(`\nFatos extraídos: ${response1.factsExtracted}`);
-    console.log(`Memória carregada: ${response1.memoryLoaded}`);
-    console.log(`Insights proativos incluídos: ${response1.proactiveInsightsIncluded}`);
+    console.log(`\nMemória carregada: ${response1.memoryLoaded}`);
+    console.log(`Objetivos ativos: ${response1.objectivesActive}`);
+    console.log(`Confiança estimada: ${response1.confidenceScore}`);
     console.log("\n---------------------------------------------------\n");
 
     console.log("--- TESTE 2: Verificar se o JARVIS lembra da meta ---");
     const response2 = await caller.sendMessageWithContext({
       conversationId: response1.conversationId,
       content: "Qual é minha meta mesmo?",
-      includeProactiveInsights: false,
     });
 
     console.log("Resposta do JARVIS:");
     console.log(response2.content);
     console.log("\n---------------------------------------------------\n");
 
-    console.log("--- TESTE 3: Obter insights proativos ---");
-    const insights = await caller.getProactiveInsights();
-    console.log(`Total de insights: ${insights.totalInsights}`);
-    console.log(`Itens urgentes: ${insights.urgentItems.length}`);
-    console.log(`Oportunidades: ${insights.opportunityItems.length}`);
+    console.log("--- TESTE 3: Verificar segurança e ferramentas aprendidas ---");
+    const security = await caller.getSecurityStatus();
+    const tools = await caller.getLearnedTools();
+    console.log(`Status de segurança: ${security.status}`);
+    console.log(`Ferramentas aprendidas: ${tools.length}`);
 
   } catch (error) {
     console.error("❌ Erro no teste de integração:", error);

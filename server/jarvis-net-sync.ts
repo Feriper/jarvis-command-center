@@ -40,13 +40,15 @@ export class JarvisNetSync {
       ]
     });
 
-    const content = response.choices[0]?.message?.content || "Senhor, houve uma falha na sincronização com a rede global.";
-    
-    // Extrair URLs fictícias da resposta para simular fontes
-    const sources = content.match(/https?:\/\/[^\s)]+/g) || [
-      "https://techcrunch.com/stark-tech",
-      "https://reuters.com/ai-updates"
-    ];
+    const rawContent = response.choices[0]?.message?.content;
+    const content = typeof rawContent === "string"
+      ? rawContent
+      : Array.isArray(rawContent)
+        ? rawContent.filter((part): part is { type: "text"; text: string } => part.type === "text").map(part => part.text).join("\n")
+        : "Senhor, houve uma falha na sincronização com a rede global.";
+
+    // Somente URLs presentes na resposta são tratadas como fontes.
+    const sources = content.match(/https?:\/\/[^\s)]+/g) || [];
 
     return {
       content,
@@ -70,7 +72,12 @@ export class JarvisNetSync {
       ]
     });
 
-    return response.choices[0]?.message?.content || "Senhor, a URL está inacessível ou protegida por protocolos de segurança.";
+    const rawContent = response.choices[0]?.message?.content;
+    if (typeof rawContent === "string") return rawContent;
+    if (Array.isArray(rawContent)) {
+      return rawContent.filter((part): part is { type: "text"; text: string } => part.type === "text").map(part => part.text).join("\n");
+    }
+    return "Senhor, a URL está inacessível ou protegida por protocolos de segurança.";
   }
 }
 

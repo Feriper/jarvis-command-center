@@ -26,8 +26,12 @@ export const autonomousRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       monitoringManager.startMonitoring(ctx.user.id, {
-        checkIntervalMinutes: input.checkIntervalMinutes,
-        alertThresholds: input.alertThresholds,
+        checkIntervalMinutes: input.checkIntervalMinutes ?? 15,
+        alertThresholds: {
+          roiDropPercent: input.alertThresholds?.roiDropPercent ?? 20,
+          ctrDropPercent: input.alertThresholds?.ctrDropPercent ?? 20,
+          engagementDropPercent: input.alertThresholds?.engagementDropPercent ?? 20,
+        },
       });
 
       return {
@@ -204,7 +208,7 @@ export const autonomousRouter = router({
       tasksCompleted: tasks.filter((t) => t.status === "completed").length,
       tasksPending: tasks.filter((t) => t.status === "pending").length,
       keyMetrics: {
-        totalSpent: campaigns.reduce((sum, c) => sum + (c.budget || 0), 0),
+        totalSpent: campaigns.reduce((sum, c) => sum + Number(c.budget ?? 0), 0),
         estimatedROI: Math.random() * 300, // Placeholder
       },
     };

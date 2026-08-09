@@ -82,10 +82,11 @@ export class JarvisGuardianProtocol {
     // Criar alerta imediato
     await db.createAlert?.({
       userId: this.userId,
-      type: "security",
+      type: "system_alert",
+      title: "Alerta de segurança do Guardian",
       message: `[GUARDIAN] Ameaça ${threat.severity} detectada: ${threat.actionTaken}`,
       severity: threat.severity,
-      isRead: false,
+      read: false,
     });
   }
 

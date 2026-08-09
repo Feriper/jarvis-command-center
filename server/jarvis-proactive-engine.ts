@@ -7,6 +7,8 @@
 import * as db from "./db";
 import { invokeLLM } from "./_core/llm";
 
+const metricNumber = (value: string | number | null | undefined): number => Number(value ?? 0);
+
 export interface ProactiveInsight {
   id: string;
   userId: number;
@@ -111,10 +113,12 @@ export class JarvisProactiveEngine {
         const latest = metrics[metrics.length - 1];
         const previous = metrics[metrics.length - 2];
 
-        const ctrChange =
-          ((latest.ctr - previous.ctr) / previous.ctr) * 100;
-        const roiChange =
-          ((latest.roi - previous.roi) / previous.roi) * 100;
+        const latestCtr = metricNumber(latest.ctr);
+        const previousCtr = metricNumber(previous.ctr);
+        const latestRoi = metricNumber(latest.roi);
+        const previousRoi = metricNumber(previous.roi);
+        const ctrChange = previousCtr === 0 ? 0 : ((latestCtr - previousCtr) / previousCtr) * 100;
+        const roiChange = previousRoi === 0 ? 0 : ((latestRoi - previousRoi) / previousRoi) * 100;
 
         // Detectar quedas significativas
         if (ctrChange < -20) {
@@ -123,11 +127,11 @@ export class JarvisProactiveEngine {
             userId: this.userId,
             type: "anomaly",
             severity: ctrChange < -40 ? "high" : "medium",
-            title: `CTR Drop in Campaign "${campaign.name}"`,
-            description: `CTR decreased by ${Math.abs(ctrChange).toFixed(1)}% (${previous.ctr.toFixed(2)}% → ${latest.ctr.toFixed(2)}%)`,
+            title: `CTR Drop in Campaign "${campaign.campaignName}"`,
+            description: `CTR decreased by ${Math.abs(ctrChange).toFixed(1)}% (${metricNumber(previous.ctr).toFixed(2)}% → ${metricNumber(latest.ctr).toFixed(2)}%)`,
             supportingData: {
               campaignId: campaign.id,
-              campaignName: campaign.name,
+              campaignName: campaign.campaignName,
               previousCTR: previous.ctr,
               currentCTR: latest.ctr,
               changePercent: ctrChange,
@@ -144,7 +148,7 @@ export class JarvisProactiveEngine {
             userId: this.userId,
             type: "anomaly",
             severity: roiChange < -50 ? "critical" : "high",
-            title: `ROI Drop in Campaign "${campaign.name}"`,
+            title: `ROI Drop in Campaign "${campaign.campaignName}"`,
             description: `ROI decreased by ${Math.abs(roiChange).toFixed(1)}%`,
             supportingData: {
               campaignId: campaign.id,
@@ -182,14 +186,14 @@ export class JarvisProactiveEngine {
         const latest = metrics[metrics.length - 1];
 
         // Oportunidade: CTR acima da média
-        if (latest.ctr > 3.5) {
+        if (metricNumber(latest.ctr) > 3.5) {
           opportunities.push({
             id: `opp_${Date.now()}`,
             userId: this.userId,
             type: "opportunity",
             severity: "low",
-            title: `High-Performing Campaign: "${campaign.name}"`,
-            description: `Campaign CTR is ${latest.ctr.toFixed(2)}%, which is above industry average (3.0%)`,
+            title: `High-Performing Campaign: "${campaign.campaignName}"`,
+            description: `Campaign CTR is ${metricNumber(latest.ctr).toFixed(2)}%, which is above industry average (3.0%)`,
             supportingData: {
               campaignId: campaign.id,
               currentCTR: latest.ctr,
@@ -209,7 +213,7 @@ export class JarvisProactiveEngine {
             userId: this.userId,
             type: "opportunity",
             severity: "low",
-            title: `Peak Hours Identified for "${campaign.name}"`,
+            title: `Peak Hours Identified for "${campaign.campaignName}"`,
             description: `Highest engagement during hours: ${peakHours.join(", ")}`,
             supportingData: {
               campaignId: campaign.id,
@@ -242,7 +246,7 @@ export class JarvisProactiveEngine {
       const now = new Date();
 
       for (const task of tasks) {
-        if (task.dueDate && new Date(task.dueDate) < now && !task.completed) {
+        if (task.dueDate && new Date(task.dueDate) < now && task.status !== "completed" && task.status !== "cancelled") {
           const hoursOverdue = Math.floor(
             (now.getTime() - new Date(task.dueDate).getTime()) / (1000 * 60 * 60)
           );

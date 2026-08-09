@@ -21,12 +21,20 @@ vi.mock("./db", () => ({
 // Mock do LLM
 vi.mock("./_core/llm", () => ({
   invokeLLM: vi.fn(),
+  contentToText: (content: unknown) => {
+    if (typeof content === "string") return content;
+    if (Array.isArray(content)) return content.filter((part: any) => part?.type === "text").map((part: any) => part.text).join("\n");
+    return "";
+  },
 }));
 
 import * as db from "./db";
 import { invokeLLM } from "./_core/llm";
 
 describe("JARVIS Transcendência - Testes de Capacidades Avançadas", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   
   describe("EvolutionCore", () => {
     it("deve aprender uma nova habilidade a partir de uma interação", async () => {

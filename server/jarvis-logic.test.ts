@@ -22,6 +22,7 @@ vi.mock("./db", () => ({
 // Mock do LLM
 vi.mock("./_core/llm", () => ({
   invokeLLM: vi.fn(),
+  contentToText: (content: unknown) => typeof content === "string" ? content : Array.isArray(content) ? content.filter((part: any) => part?.type === "text").map((part: any) => part.text).join("\n") : "",
 }));
 
 import * as db from "./db";

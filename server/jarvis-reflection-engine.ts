@@ -4,7 +4,7 @@
  * O JARVIS pensa antes de falar, critica suas próprias ideias e refina a resposta final.
  */
 
-import { invokeLLM } from "./_core/llm";
+import { contentToText, invokeLLM } from "./_core/llm";
 
 export interface ReflectionStep {
   thought: string;
@@ -80,7 +80,7 @@ export class JarvisReflectionEngine {
       ],
     });
 
-    const content = response.choices[0]?.message?.content || "";
+    const content = contentToText(response.choices[0]?.message?.content);
     const [thought, critique] = this.splitThoughtAndCritique(content);
 
     return { thought, critique };
@@ -110,7 +110,7 @@ export class JarvisReflectionEngine {
       ],
     });
 
-    const refinement = response.choices[0]?.message?.content || "";
+    const refinement = contentToText(response.choices[0]?.message?.content);
     return { thought: originalResponse, critique, refinement };
   }
 
@@ -128,7 +128,7 @@ export class JarvisReflectionEngine {
       ],
     });
 
-    const scoreStr = evaluation.choices[0]?.message?.content || "0";
+    const scoreStr = contentToText(evaluation.choices[0]?.message?.content) || "0";
     return parseInt(scoreStr.replace(/[^0-9]/g, "")) || 70;
   }
 

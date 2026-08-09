@@ -60,7 +60,7 @@ export class CodingAgent {
       // 4. Depuração Automática (Self-Healing) se necessário
       if (!testResult.success) {
         this.currentTask.status = "debugging";
-        await this.selfHeal(testResult.error);
+        await this.selfHeal(testResult.error ?? "O teste falhou sem fornecer detalhes.");
       }
 
       this.currentTask.status = "completed";

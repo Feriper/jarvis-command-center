@@ -147,7 +147,12 @@ export class LLMOrchestrator {
     options?: Partial<LLMConfig>
   ): Promise<LLMResponse> {
     const startTime = Date.now();
-    const config = { ...this.configs.get(provider), ...options };
+    const config: LLMConfig = {
+      provider,
+      model: DEFAULT_MODELS[provider],
+      ...this.configs.get(provider),
+      ...options,
+    };
 
     try {
       let response;
@@ -158,7 +163,6 @@ export class LLMOrchestrator {
         response = await invokeLLM({
           messages,
           model: config.model,
-          temperature: config.temperature,
           max_tokens: config.maxTokens,
         });
       } else {

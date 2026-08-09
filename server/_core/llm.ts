@@ -24,6 +24,13 @@ export type FileContent = {
 };
 
 export type MessageContent = string | TextContent | ImageContent | FileContent;
+export type LlmContent = string | Array<TextContent | ImageContent | FileContent>;
+
+export const contentToText = (content: LlmContent | null | undefined): string => {
+  if (typeof content === "string") return content;
+  if (!content) return "";
+  return content.filter((part): part is TextContent => part.type === "text").map(part => part.text).join("\n");
+};
 
 export type Message = {
   role: Role;

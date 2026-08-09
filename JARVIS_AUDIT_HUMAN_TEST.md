@@ -73,3 +73,31 @@ Foi feita uma inspeção do inventário do repositório, dos manifestos e config
 A ordem segura é: primeiro alinhar tipos e build; depois criar testes de jornada com banco/LLM isolados; em seguida substituir simulações de pesquisa por fontes reais e rastreáveis; depois implementar um pipeline de conteúdo com aprovação humana; por último conectar publicação e automações com credenciais específicas, limites, logs, revogação e confirmação antes de ações irreversíveis.
 
 Nenhuma movimentação financeira, publicação ou envio externo será executado automaticamente durante a auditoria.
+
+## Fontes oficiais consultadas para publicação
+
+| Plataforma | Requisito confirmado | Impacto no Jarvis |
+|---|---|---|
+| YouTube Data API | Upload exige OAuth 2.0, projeto configurado no Google API Console, escopo `youtube.upload`, metadados de privacidade e upload resumível | A integração precisa de OAuth seguro, armazenamento de tokens, tratamento de falhas e modo privado/não listado para validação antes de publicar. |
+| TikTok Content Posting API | Exige app registrado, produto Content Posting API habilitado, aprovação/autorização do escopo `video.publish`, token e Open ID do usuário; clientes não auditados ficam restritos a visualização privada | O Jarvis não pode prometer publicação pública automática sem aprovação do app e auditoria; deve começar com rascunho ou privado, consultar informações do criador e acompanhar o status assíncrono. |
+
+Fontes: [YouTube — Upload de um vídeo](https://developers.google.com/youtube/v3/guides/uploading_a_video); [TikTok — Get Started: Direct Post](https://developers.tiktok.com/doc/content-posting-api-get-started).
+
+## Monetização e expectativa de receita
+
+A página oficial do Programa de Parcerias do YouTube informa, entre os critérios principais apresentados, a necessidade de 1.000 inscritos e 4.000 horas públicas válidas nos últimos 12 meses, ou 1.000 inscritos e 10 milhões de visualizações públicas válidas de Shorts nos últimos 90 dias. Portanto, o Jarvis pode acompanhar métricas e preparar conteúdo, mas não pode garantir renda: elegibilidade, aprovação, políticas, desempenho e demanda permanecem fatores externos.
+
+Fonte: [Programa de Parcerias do YouTube — visão geral e qualificação](https://support.google.com/youtube/answer/72851?hl=pt-BR).
+
+A política oficial de monetização do YouTube esclarece que conteúdo monetizado precisa ser original e autêntico, não produzido em massa, genérico, repetitivo ou manipulador; material de terceiros precisa sofrer mudanças significativas. Isso exige no Jarvis um registro de fontes, licenças, contribuição original, revisão humana e bloqueio de publicação quando o conteúdo for apenas uma variação automática de material alheio.
+
+Fonte: [Políticas de Monetização de Canais do YouTube](https://support.google.com/youtube/answer/1311392?hl=pt-BR).
+
+
+## Resultado da estabilização técnica
+
+Após a auditoria, foram corrigidos contratos incompatíveis entre schema e código, a exposição do router unificado, a meta de compilação ES2020, a normalização de respostas multimodais do LLM, os defaults do monitor autônomo, os alertas Guardian e os testes legados. A verificação `pnpm exec tsc --noEmit` termina sem erros TypeScript; a suíte `pnpm test -- --run` também foi executada com sucesso, incluindo as suítes Beyond, transcendência e lógica existentes.
+
+O teste permanece predominantemente unitário/mockado. Ele confirma memória, objetivos, reflexão, segurança, monitoramento e integração interna, mas não confirma publicação real no YouTube/TikTok, geração completa de vídeo, monetização, gestão financeira com contas reais ou aprendizado autônomo irrestrito na internet. Essas capacidades exigem credenciais OAuth, aprovação das plataformas, armazenamento seguro de segredos, filas/agendamento, revisão humana para ações irreversíveis e políticas de originalidade/direitos autorais.
+
+A branch de trabalho deve permanecer separada da principal até a revisão final e a validação com credenciais de sandbox ou contas de teste.

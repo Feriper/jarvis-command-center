@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import { protectedProcedure, router } from "./_core/trpc";
-import { invokeLLM } from "./_core/llm";
+import { contentToText, invokeLLM } from "./_core/llm";
 import * as db from "./db";
 import {
   buildJarvisSystemMessage,
@@ -126,7 +126,7 @@ export const jarvisUnifiedRouter = router({
               { role: "user", content: input.content }
             ]
           });
-          aiContent = response.choices[0]?.message?.content || "Desculpe, senhor. Erro no processamento.";
+          aiContent = contentToText(response.choices[0]?.message?.content) || "Desculpe, senhor. Erro no processamento.";
         }
 
         // 6. Pós-Processamento Autônomo

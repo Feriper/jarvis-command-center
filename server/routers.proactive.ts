@@ -51,6 +51,9 @@ Retorne JSON: { "tasks": [{ "agent": string, "task": string, "priority": number 
           objective: `${task.agent}: ${task.task}`,
           status: "pending",
         });
+        if (!agentTask) {
+          throw new Error("Não foi possível persistir a tarefa do agente.");
+        }
         createdTasks.push({ ...task, id: agentTask.insertId });
       }
 
