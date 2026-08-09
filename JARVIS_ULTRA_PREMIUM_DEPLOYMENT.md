@@ -48,7 +48,7 @@ Railway gerencia o banco de dados MySQL e o backend com facilidade.
 No arquivo `.env` do Railway, adicione:
 ```env
 AUTHORIZED_EMAILS=seu-email@example.com,familia@example.com,amigo-confiavel@example.com
-JARVIS_PASSWORD=sua-senha-super-segura
+Autenticação: usar a sessão OAuth oficial; não configurar senha local no cliente.
 ```
 
 ### Ativar HTTPS e SSL

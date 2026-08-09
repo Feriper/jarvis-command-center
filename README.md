@@ -28,7 +28,7 @@ Se você tem uma instância na Oracle Cloud ou qualquer VPS Ubuntu:
 
 ## 🔐 Acesso
 O acesso é restrito via **Auth Gate**.
-- **Senha Padrão**: `jarvis2026`
+Autenticação: usar a sessão OAuth oficial; não usar senha padrão.
 - **Whitelist**: Configure os e-mails autorizados no arquivo `.env`.
 
 ---

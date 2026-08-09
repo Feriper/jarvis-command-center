@@ -63,7 +63,7 @@ OPENAI_API_KEY=sua-chave-aqui
 PORT=3000
 NODE_ENV=production
 AUTHORIZED_EMAILS=seu-email@example.com,familia@example.com
-JARVIS_PASSWORD=sua-senha-super-segura
+Autenticação: usar a sessão OAuth oficial; não configurar senha local no cliente.
 ```
 
 ### 2.4 Deploy Automático
@@ -145,7 +145,7 @@ Após completar todos os passos:
 
 ### "Unauthorized access"
 - Verifique se seu e-mail está na lista `AUTHORIZED_EMAILS`.
-- Verifique a senha configurada em `JARVIS_PASSWORD`.
+Autenticação: usar a sessão OAuth oficial; não configurar senha local no cliente.
 
 ---
 
