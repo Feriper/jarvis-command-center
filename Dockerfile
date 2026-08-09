@@ -8,6 +8,7 @@ RUN npm install -g pnpm
 
 # Copiar arquivos
 COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 
 # Instalar dependências
 RUN pnpm install --frozen-lockfile
@@ -28,6 +29,7 @@ RUN npm install -g pnpm
 
 # Copiar apenas os arquivos necessários do builder
 COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod
 
 # Copiar os bundles de produção do stage anterior
