@@ -71,3 +71,7 @@ A publicação externa deve começar em modo privado ou não listado. O Jarvis d
 | Conteúdo | Rascunho, direitos, pacote e render local funcionam |
 | Segurança | Nenhuma senha pessoal ou chave Pix aparece no repositório |
 | Backup | Banco e arquivos de mídia têm rotina de backup |
+
+## 8. Hospedagem remota
+
+Para uma implantação remota simples, consulte `RAILWAY_DEPLOY.md`. O Railway é a recomendação atual porque o projeto já possui Dockerfile, configuração `railway.json` e banco MySQL compatível. A conta da hospedagem, os secrets e qualquer cobrança precisam ser autorizados pelo responsável da conta; não são incluídos automaticamente pelo Jarvis.

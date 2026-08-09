@@ -30,9 +30,9 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
-# Copiar build do stage anterior
+# Copiar os bundles de produção do stage anterior
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server ./server
+COPY --from=builder /app/dist-server ./dist-server
 
 # Expor porta
 EXPOSE 3000
