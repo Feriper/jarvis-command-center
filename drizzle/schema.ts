@@ -168,6 +168,32 @@ export type ScheduledPost = typeof scheduledPosts.$inferSelect;
 export type InsertScheduledPost = typeof scheduledPosts.$inferInsert;
 
 /**
+ * Conteúdo gerado pelo Jarvis aguardando revisão, direitos e aprovação explícita.
+ * Esta tabela não representa publicação externa: ela registra apenas rascunhos e estado de aprovação.
+ */
+export const contentDrafts = mysqlTable("content_drafts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  platform: mysqlEnum("platform", ["youtube", "tiktok"]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  script: longtext("script").notNull(),
+  sourceUrls: json("sourceUrls"),
+  mediaUrls: json("mediaUrls"),
+  rightsReview: json("rightsReview"),
+  rightsStatus: mysqlEnum("rightsStatus", ["pending", "verified", "blocked"]).default("pending").notNull(),
+  status: mysqlEnum("status", ["draft", "approved", "rejected", "published", "failed"]).default("draft").notNull(),
+  approvedAt: timestamp("approvedAt"),
+  publishedAt: timestamp("publishedAt"),
+  externalPostId: varchar("externalPostId", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ContentDraft = typeof contentDrafts.$inferSelect;
+export type InsertContentDraft = typeof contentDrafts.$inferInsert;
+
+/**
  * Ad campaigns tracking (Google Ads, Meta Ads, etc)
  */
 export const adCampaigns = mysqlTable("ad_campaigns", {

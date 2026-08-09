@@ -14,7 +14,8 @@ import {
   agentTasks, InsertAgentTask,
   aiAgents, InsertAiAgent,
   sentimentAnalysis, InsertSentimentAnalysis,
-  financialProjections, InsertFinancialProjection
+  financialProjections, InsertFinancialProjection,
+  contentDrafts, InsertContentDraft
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -158,6 +159,33 @@ export async function getSocialAccounts(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return await db.select().from(socialMediaAccounts).where(eq(socialMediaAccounts.userId, userId));
+}
+
+// Content draft methods
+export async function getContentDrafts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(contentDrafts).where(eq(contentDrafts.userId, userId)).orderBy(desc(contentDrafts.createdAt));
+}
+
+export async function getContentDraft(draftId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(contentDrafts).where(and(eq(contentDrafts.id, draftId), eq(contentDrafts.userId, userId))).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function createContentDraft(draft: InsertContentDraft) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(contentDrafts).values(draft);
+  return result;
+}
+
+export async function updateContentDraft(draftId: number, userId: number, updates: Partial<InsertContentDraft>) {
+  const db = await getDb();
+  if (!db) return null;
+  return await db.update(contentDrafts).set(updates).where(and(eq(contentDrafts.id, draftId), eq(contentDrafts.userId, userId)));
 }
 
 // Ads methods

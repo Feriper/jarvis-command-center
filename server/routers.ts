@@ -9,6 +9,7 @@ import { llmOrchestratorRouter } from "./routers.llm-orchestrator";
 import { codingRouter } from "./routers.coding";
 import { selfHealingRouter } from "./routers.self-healing";
 import { jarvisUnifiedRouter } from "./routers.jarvis-unified";
+import { contentRouter } from "./routers.content";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { z } from "zod";
@@ -24,6 +25,7 @@ export const appRouter = router({
   coding: codingRouter,
   selfHealing: selfHealingRouter,
   jarvisUnified: jarvisUnifiedRouter,
+  content: contentRouter,
   
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

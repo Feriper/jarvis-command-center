@@ -1,0 +1,19 @@
+CREATE TABLE `content_drafts` (
+  `id` int AUTO_INCREMENT NOT NULL,
+  `userId` int NOT NULL,
+  `platform` enum('youtube','tiktok') NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text,
+  `script` longtext NOT NULL,
+  `sourceUrls` json,
+  `mediaUrls` json,
+  `rightsReview` json,
+  `rightsStatus` enum('pending','verified','blocked') NOT NULL DEFAULT 'pending',
+  `status` enum('draft','approved','rejected','published','failed') NOT NULL DEFAULT 'draft',
+  `approvedAt` timestamp,
+  `publishedAt` timestamp,
+  `externalPostId` varchar(255),
+  `createdAt` timestamp NOT NULL DEFAULT (now()),
+  `updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `content_drafts_id` PRIMARY KEY(`id`)
+);

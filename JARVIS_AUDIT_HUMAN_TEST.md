@@ -101,3 +101,14 @@ Após a auditoria, foram corrigidos contratos incompatíveis entre schema e cód
 O teste permanece predominantemente unitário/mockado. Ele confirma memória, objetivos, reflexão, segurança, monitoramento e integração interna, mas não confirma publicação real no YouTube/TikTok, geração completa de vídeo, monetização, gestão financeira com contas reais ou aprendizado autônomo irrestrito na internet. Essas capacidades exigem credenciais OAuth, aprovação das plataformas, armazenamento seguro de segredos, filas/agendamento, revisão humana para ações irreversíveis e políticas de originalidade/direitos autorais.
 
 A branch de trabalho deve permanecer separada da principal até a revisão final e a validação com credenciais de sandbox ou contas de teste.
+
+
+## Melhoria aplicada: pipeline segura de conteúdo
+
+Foi adicionada a tabela `content_drafts` e o router autenticado `content`, com operações para listar e criar rascunhos, revisar direitos autorais, aprovar e rejeitar conteúdo. Todo novo conteúdo começa com `rightsStatus = pending` e `status = draft`. A aprovação é recusada até que as quatro confirmações de revisão estejam verdadeiras: contribuição original, mídia própria/licenciada, música própria/licenciada e revisão da política de terceiros. Não foi criado endpoint de publicação automática; portanto, nenhuma chamada externa irreversível é disparada por esta etapa.
+
+A migração aplicável está em `drizzle/0002_content_drafts.sql`. Ela deve ser executada pelo responsável pelo ambiente de banco antes de usar o router em produção. A geração automática de migração não foi possível nesta sessão porque `DATABASE_URL` não está configurada, então a SQL foi versionada manualmente seguindo o padrão das migrações existentes.
+
+## Validação após a melhoria
+
+A checagem TypeScript terminou sem erros. A suíte passou com **5 arquivos e 17 testes**, incluindo três testes novos para criação pendente, bloqueio de aprovação sem revisão e aprovação somente após as confirmações. O build de produção terminou com sucesso; permanecem apenas avisos não bloqueantes sobre variáveis de analytics ausentes e chunks do cliente maiores que 500 kB.
