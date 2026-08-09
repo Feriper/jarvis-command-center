@@ -32,9 +32,10 @@ COPY package.json pnpm-lock.yaml ./
 COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod
 
-# Copiar os bundles de produção do stage anterior
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/dist-server ./dist-server
+# Copiar os bundles de produção do stage anterior.
+# O servidor empacotado resolve os assets relativos a dist-server/public.
+COPY --from=builder /app/dist/public ./dist-server/public
+COPY --from=builder /app/dist-server/index.js ./dist-server/index.js
 
 # Expor porta
 EXPOSE 3000
