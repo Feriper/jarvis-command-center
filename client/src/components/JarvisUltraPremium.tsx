@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Zap, Brain, Shield, Sparkles, User, Bot, Terminal, Activity, Cpu } from "lucide-react";
+import { trpc } from "../lib/trpc";
 
 interface Message {
   id: string;
@@ -23,7 +24,11 @@ export function JarvisUltraPremium() {
   const [isLoading, setIsLoading] = useState(false);
   const [agencySteps, setAgencySteps] = useState<AgencyStep[]>([]);
   const [deepThinkingEnabled, setDeepThinkingEnabled] = useState(false);
+  const [conversationId, setConversationId] = useState<number | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // tRPC Mutation para enviar mensagem
+  const sendMessageMutation = trpc.jarvisUnified.sendMessageWithContext.useMutation();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,12 +39,13 @@ export function JarvisUltraPremium() {
   }, [messages, agencySteps]);
 
   const handleSendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
+    const userContent = input.trim();
     const userMessage: Message = {
       id: `msg_${Date.now()}`,
       role: "user",
-      content: input,
+      content: userContent,
       timestamp: new Date(),
     };
 
@@ -47,52 +53,52 @@ export function JarvisUltraPremium() {
     setInput("");
     setIsLoading(true);
 
-    // Simular agência multi-etapas para comandos complexos
-    if (input.toLowerCase().includes("pesquise") || input.toLowerCase().includes("analise") || input.length > 30) {
-      setAgencySteps([
-        { step: 1, action: "ACESSANDO REDE GLOBAL...", status: "executing" },
-        { step: 2, action: "PROCESSANDO DADOS EM NÚCLEO NEURAL...", status: "pending" },
-        { step: 3, action: "SINTETIZANDO RESPOSTA ESTRATÉGICA...", status: "pending" },
-      ]);
+    // Simular passos de agência para dar feedback visual de "trabalho"
+    setAgencySteps([
+      { step: 1, action: "ACESSANDO REDE GLOBAL...", status: "executing" },
+      { step: 2, action: "PROCESSANDO DADOS EM NÚCLEO NEURAL...", status: "pending" },
+      { step: 3, action: "SINTETIZANDO RESPOSTA ESTRATÉGICA...", status: "pending" },
+    ]);
 
-      setTimeout(() => {
-        setAgencySteps((prev) =>
-          prev.map((s, i) => ({
-            ...s,
-            status: i === 0 ? "completed" : i === 1 ? "executing" : "pending",
-          }))
-        );
-      }, 1500);
+    try {
+      // Chamada real ao backend JARVIS Beyond
+      const response = await sendMessageMutation.mutateAsync({
+        content: userContent,
+        conversationId: conversationId,
+        deepThinking: deepThinkingEnabled,
+      });
 
-      setTimeout(() => {
-        setAgencySteps((prev) =>
-          prev.map((s, i) => ({
-            ...s,
-            status: i <= 1 ? "completed" : i === 2 ? "executing" : "pending",
-          }))
-        );
-      }, 3000);
-    }
+      // Atualizar passos de agência como concluídos
+      setAgencySteps((prev) => prev.map(s => ({ ...s, status: "completed" })));
 
-    // Resposta do JARVIS
-    setTimeout(() => {
       const assistantMessage: Message = {
         id: `msg_${Date.now() + 1}`,
         role: "assistant",
-        content: `Senhor, a análise foi concluída. ${
-          deepThinkingEnabled
-            ? "Executei um ciclo de raciocínio profundo para garantir a máxima precisão estratégica em sua solicitação."
-            : "Processei sua solicitação com eficiência nominal."
-        }`,
+        content: response.content,
         timestamp: new Date(),
-        confidence: deepThinkingEnabled ? 99 : 92,
-        deepThinking: deepThinkingEnabled
+        confidence: response.confidenceScore,
+        deepThinking: response.deepThinkingPerformed
       };
 
+      if (response.conversationId) {
+        setConversationId(response.conversationId);
+      }
+
       setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Erro JARVIS:", error);
+      const errorMessage: Message = {
+        id: `msg_err_${Date.now()}`,
+        role: "assistant",
+        content: "Senhor, detectei uma falha na conexão com o núcleo central. Por favor, verifique os protocolos de rede.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-      setAgencySteps([]);
-    }, 4500);
+      // Pequeno delay para o usuário ver os passos concluídos antes de sumirem
+      setTimeout(() => setAgencySteps([]), 1000);
+    }
   };
 
   return (
@@ -192,7 +198,7 @@ export function JarvisUltraPremium() {
                       ? "bg-blue-900/20 border-blue-500/30 rounded-tr-none text-blue-50 shadow-[0_0_20px_rgba(59,130,246,0.1)]" 
                       : "bg-slate-900/60 border-cyan-500/30 rounded-tl-none text-cyan-50 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
                   }`}>
-                    <p className="leading-relaxed text-sm">{msg.content}</p>
+                    <p className="leading-relaxed text-sm whitespace-pre-wrap">{msg.content}</p>
                   </div>
                   <div className="mt-2 flex items-center gap-3 text-[9px] uppercase tracking-tighter text-blue-500/50">
                     <span>{msg.timestamp.toLocaleTimeString()}</span>
@@ -230,7 +236,7 @@ export function JarvisUltraPremium() {
               </motion.div>
             )}
 
-            {isLoading && (
+            {isLoading && !agencySteps.length && (
               <div className="flex items-center gap-3 text-blue-400/50 text-[10px] tracking-widest uppercase ml-14">
                 <div className="flex gap-1">
                   <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1 h-1 bg-blue-400 rounded-full"></motion.div>
@@ -264,7 +270,7 @@ export function JarvisUltraPremium() {
               className="absolute right-3 top-2.5 bottom-2.5 px-6 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900/30 text-white rounded-lg flex items-center gap-2 font-black text-xs transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)]"
             >
               <Send className="w-4 h-4" />
-              EXECUTAR
+              {isLoading ? "PROCESSANDO" : "EXECUTAR"}
             </motion.button>
           </div>
           <div className="mt-4 flex justify-between items-center text-[8px] text-blue-900 uppercase tracking-tighter">
