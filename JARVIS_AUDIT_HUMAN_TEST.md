@@ -123,3 +123,13 @@ O schema e a migração foram ampliados com tags, legendas, prompt de thumbnail,
 A documentação operacional está em `CONTENT_PRODUCTION.md`. O fluxo recomendado é criar rascunho, preparar pacote, fornecer mídia própria/licenciada, revisar direitos, aprovar e fazer upload manual privado ou não listado no YouTube Studio.
 
 A validação desta rodada terminou com **6 arquivos e 18 testes aprovados**, TypeScript sem erros e renderização local de vídeo concluída. A automação não gera renda, não publica sozinha e não substitui revisão humana.
+
+## Atualização: MVP de assistente pessoal seguro
+
+A autenticação fictícia do cliente foi removida. O acesso agora depende da sessão OAuth oficial do servidor; não há mais senha fixa, whitelist hardcoded ou segredo de usuário no frontend.
+
+Foi adicionada a tabela `assistant_actions`, a migração `drizzle/0003_assistant_actions.sql`, o router `actions` e a tela `/actions`. O Jarvis pode propor ações, registrar estado pendente e receber aprovação ou rejeição, mas a aprovação não executa Pix, publicação, mensagem ou qualquer efeito externo. O estado `executed` permanece reservado para um executor explícito e futuro.
+
+Validação desta rodada: TypeScript sem erros, build de produção concluído e 7 arquivos com 20 testes aprovados. A branch `audit/human-agent-validation` foi sincronizada com os commits `3792282` e `4687b6c`.
+
+Ainda depende de configuração externa: aplicar as migrações no banco, configurar OAuth e iniciar o serviço em um ambiente persistente. Nenhuma chave Pix, senha bancária ou credencial de publicação deve ser armazenada no repositório.
