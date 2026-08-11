@@ -40,9 +40,9 @@ COPY --from=builder /app/dist-server/index.js ./dist-server/index.js
 # Expor porta
 EXPOSE 3000
 
-# Health check
+# Health check: Railway injects PORT; 3000 remains the local default.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+  CMD node -e "const port = process.env.PORT || 3000; require('http').get('http://localhost:' + port + '/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)}).on('error', () => process.exit(1))"
 
 # Iniciar aplicação
 CMD ["pnpm", "start"]
