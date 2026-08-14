@@ -1,11 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
 
-const now = new Date();
-const today = new Date(now);
-today.setHours(12, 0, 0, 0);
-const tomorrow = new Date(now);
-tomorrow.setDate(tomorrow.getDate() + 1);
+const now = new Date(2026, 7, 14, 10, 0, 0, 0);
+const today = new Date(2026, 7, 14, 12, 0, 0, 0);
+const tomorrow = new Date(2026, 7, 15, 12, 0, 0, 0);
 
 const tasks = [
   {
@@ -62,7 +60,13 @@ describe("Tasks overview", () => {
   const caller = appRouter.createCaller({ user: { id: 1 } } as any);
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("separa tarefas atrasadas, de hoje e próximas", async () => {
