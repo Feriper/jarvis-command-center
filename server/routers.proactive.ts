@@ -346,39 +346,49 @@ Forneça 5 recomendações específicas e mensuráveis para melhorar o desempenh
       critical: alerts.filter(a => a.severity === "critical" && !a.read).length,
     };
 
-    // Gerar resumo com LLM
-    const response = await invokeLLM({
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um assistente executivo. Forneça um resumo diário conciso e motivador.",
-        },
-        {
-          role: "user",
-          content: `Crie um resumo diário baseado nesta situação:
-
-TAREFAS:
-- Pendentes: ${taskStats.pending}
-- Em Progresso: ${taskStats.inProgress}
-- Concluídas: ${taskStats.completed}
-
-CAMPANHAS: ${campaigns.length} ativas
-
-ALERTAS:
-- Não lidos: ${alertStats.unread}
-- Críticos: ${alertStats.critical}
-
-Forneça um resumo motivador em 3-4 linhas, reconhecendo o progresso e destacando prioridades.`,
-        },
-      ],
+    const now = new Date();
+    const activeTasks = tasks.filter(task => task.status !== "completed" && task.status !== "cancelled");
+    const overdueTasks = activeTasks.filter(task => task.dueDate && task.dueDate < now);
+    const dueTodayTasks = activeTasks.filter(task => {
+      if (!task.dueDate) return false;
+      const due = new Date(task.dueDate);
+      return due >= now && due.toDateString() === now.toDateString();
     });
 
+    const fallbackSummary = [
+      `Você tem ${activeTasks.length} tarefa(s) ativa(s): ${taskStats.pending} pendente(s) e ${taskStats.inProgress} em andamento.`,
+      overdueTasks.length > 0 ? `${overdueTasks.length} tarefa(s) estão atrasadas e merecem prioridade.` : "Nenhuma tarefa está atrasada.",
+      dueTodayTasks.length > 0 ? `${dueTodayTasks.length} tarefa(s) vencem hoje.` : "Não há tarefas vencendo hoje.",
+      alertStats.critical > 0 ? `${alertStats.critical} alerta(s) crítico(s) não lido(s).` : "Não há alertas críticos não lidos.",
+    ].join(" ");
+
+    let summary = fallbackSummary;
+    try {
+      const response = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content: "Você é um assistente executivo. Forneça um resumo diário conciso e motivador.",
+          },
+          {
+            role: "user",
+            content: `Crie um resumo diário baseado nesta situação:\n\nTAREFAS:\n- Pendentes: ${taskStats.pending}\n- Em Progresso: ${taskStats.inProgress}\n- Concluídas: ${taskStats.completed}\n- Atrasadas: ${overdueTasks.length}\n- Vencendo hoje: ${dueTodayTasks.length}\n\nCAMPANHAS: ${campaigns.length} ativas\n\nALERTAS:\n- Não lidos: ${alertStats.unread}\n- Críticos: ${alertStats.critical}\n\nForneça um resumo motivador em 3-4 linhas, reconhecendo o progresso e destacando prioridades.`,
+          },
+        ],
+      });
+      const generated = response.choices[0]?.message?.content;
+      summary = typeof generated === "string" && generated.trim().length > 0 ? generated : fallbackSummary;
+    } catch (error) {
+      console.warn("[JARVIS_PROACTIVE] IA indisponível; usando resumo local:", error instanceof Error ? error.message : error);
+    }
+
     return {
-      summary: response.choices[0]?.message?.content,
+      summary,
       taskStats,
       alertStats,
       campaignCount: campaigns.length,
+      overdueCount: overdueTasks.length,
+      dueTodayCount: dueTodayTasks.length,
       timestamp: new Date(),
     };
   }),

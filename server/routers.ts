@@ -213,6 +213,30 @@ Capacidades: Análise de dados, visão computacional, pesquisa profunda, automa�
     list: protectedProcedure.query(async ({ ctx }) => {
       return await db.getTasks(ctx.user.id);
     }),
+    overview: protectedProcedure.query(async ({ ctx }) => {
+      const tasks = await db.getTasks(ctx.user.id);
+      const now = new Date();
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+      const active = tasks.filter(task => task.status !== "completed" && task.status !== "cancelled");
+      const overdue = active.filter(task => task.dueDate && task.dueDate < now);
+      const dueToday = active.filter(task => task.dueDate && task.dueDate >= now && task.dueDate < endOfDay);
+      return {
+        totals: {
+          all: tasks.length,
+          active: active.length,
+          completed: tasks.filter(task => task.status === "completed").length,
+        },
+        overdue,
+        dueToday,
+        next: active
+          .filter(task => task.dueDate && task.dueDate >= endOfDay)
+          .sort((a, b) => a.dueDate!.getTime() - b.dueDate!.getTime())
+          .slice(0, 5),
+      };
+    }),
     create: protectedProcedure
       .input(z.object({
         title: z.string(),
