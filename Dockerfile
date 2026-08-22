@@ -3,8 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Instalar pnpm
-RUN npm install -g pnpm
+# Fixar o gerenciador para reproduzir o lockfile em todos os deploys
+ARG PNPM_VERSION=10.18.0
+RUN npm install -g pnpm@${PNPM_VERSION}
 
 # Copiar arquivos
 COPY package.json pnpm-lock.yaml ./
@@ -24,8 +25,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Instalar pnpm
-RUN npm install -g pnpm
+# Fixar o gerenciador para reproduzir o lockfile em todos os deploys
+ARG PNPM_VERSION=10.18.0
+RUN npm install -g pnpm@${PNPM_VERSION}
 
 # Copiar apenas os arquivos necessários do builder
 COPY package.json pnpm-lock.yaml ./
