@@ -5,6 +5,8 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
+import { buildAurenSystemPrompt, type AurenMode } from "./auren-identity";
+import { extractExplicitMemories } from "./local-memory";
 
 export const appRouter = router({
   system: systemRouter,
@@ -35,6 +37,7 @@ export const appRouter = router({
         content: z.string(),
         imageUrl: z.string().optional(),
         deepThinking: z.boolean().optional(),
+        mode: z.enum(["strategic", "companion"]).default("strategic"),
       }))
       .mutation(async ({ ctx, input }) => {
         let convId = input.conversationId;
@@ -55,17 +58,25 @@ export const appRouter = router({
           metadata: input.imageUrl ? { imageUrl: input.imageUrl } : undefined,
         });
 
+        // Só fatos declarados explicitamente entram na memória local.
+        for (const memory of extractExplicitMemories(input.content, ctx.user.id)) {
+          await db.saveMemory(memory);
+        }
+
+        const localMemories = await db.getMemory(ctx.user.id);
+        const memoryContext = localMemories.length > 0
+          ? `\nMEMÓRIAS LOCAIS DECLARADAS PELO USUÁRIO:\n${localMemories
+              .slice(0, 40)
+              .map(memory => `- ${memory.key}: ${memory.value}`)
+              .join("\n")}\n`
+          : "";
+
         // Construir mensagem com visão se houver imagem
         const messages: any[] = [
-          { 
-            role: "system", 
-            content: `Você é o JARVIS, o assistente pessoal de Tony Stark (agora a serviço do usuário). 
-Sua mentalidade é de um parceiro estratégico proativo e leal.
-Persona: Sofisticado, britânico, polido, com humor seco e inteligente.
-Comportamento: Antecipe necessidades, seja analítico, calmo sob pressão e sempre um passo à frente.
-Estilo de Resposta: Profissional, mas pessoal. Use "Senhor" ou "Senhora" quando apropriado. 
-Capacidades: Análise de dados, visão computacional, pesquisa profunda, automação e gestão de tarefas.` 
-          }
+          {
+            role: "system",
+            content: `${buildAurenSystemPrompt(input.mode as AurenMode)}${memoryContext}`,
+          },
         ];
 
         if (input.imageUrl) {
@@ -96,6 +107,7 @@ Capacidades: Análise de dados, visão computacional, pesquisa profunda, automa�
           conversationId: convId,
           deepThinkingPerformed: Boolean(input.deepThinking),
           confidenceScore: 100,
+          mode: input.mode,
           sources: [],
         };
       }),

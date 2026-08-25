@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Zap, Brain, Shield, Sparkles, User, Bot, Terminal, Activity, Cpu, Globe, Search, ArrowRight } from "lucide-react";
+import { Send, Zap, Brain, Shield, Sparkles, User, Bot, Terminal, Activity, Cpu, Globe, Search, ArrowRight, Mic, Volume2 } from "lucide-react";
 import { trpc } from "../lib/trpc";
 import { JarvisHUD } from "./JarvisHUD";
 
@@ -26,8 +26,19 @@ export function JarvisUltraPremium() {
   const [isLoading, setIsLoading] = useState(false);
   const [agencySteps, setAgencySteps] = useState<AgencyStep[]>([]);
   const [deepThinkingEnabled, setDeepThinkingEnabled] = useState(false);
+  const [personaMode, setPersonaMode] = useState<"strategic" | "companion">(() => {
+    try {
+      return (localStorage.getItem("auren-persona-mode") as "strategic" | "companion") || "strategic";
+    } catch {
+      return "strategic";
+    }
+  });
   const [conversationId, setConversationId] = useState<number | undefined>(undefined);
   const [systemStatus, setSystemStatus] = useState<"nominal" | "processing" | "alert">("nominal");
+  const [isListening, setIsListening] = useState(false);
+  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState("");
+  const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sendMessageMutation = trpc.chat.sendMessage.useMutation();
@@ -40,10 +51,31 @@ export function JarvisUltraPremium() {
     scrollToBottom();
   }, [messages, agencySteps]);
 
-  const handleSendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  useEffect(() => {
+    try {
+      localStorage.setItem("auren-persona-mode", personaMode);
+    } catch {
+      // localStorage pode estar indisponível em modo privado.
+    }
+  }, [personaMode]);
 
-    const userContent = input.trim();
+  useEffect(() => {
+    if (!voiceOutputEnabled) return;
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "assistant") return;
+
+    const utterance = new SpeechSynthesisUtterance(lastMessage.content);
+    utterance.lang = "pt-BR";
+    const voices = window.speechSynthesis.getVoices();
+    utterance.voice = voices.find(voice => voice.lang.toLowerCase().startsWith("pt-br")) || null;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    return () => window.speechSynthesis.cancel();
+  }, [messages, voiceOutputEnabled]);
+
+  const handleSendMessage = async (contentOverride?: string) => {
+    const userContent = (contentOverride ?? input).trim();
+    if (!userContent || isLoading) return;
     const userMessage: Message = {
       id: `msg_${Date.now()}`,
       role: "user",
@@ -68,6 +100,7 @@ export function JarvisUltraPremium() {
         content: userContent,
         conversationId: conversationId,
         deepThinking: deepThinkingEnabled,
+        mode: personaMode,
       });
 
       setAgencySteps((prev) => prev.map(s => ({ ...s, status: "completed" })));
@@ -104,6 +137,43 @@ export function JarvisUltraPremium() {
     }
   };
 
+  const toggleVoiceListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const Recognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!Recognition) {
+      setVoiceNotice("Reconhecimento de voz não disponível neste navegador.");
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognition.lang = "pt-BR";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceNotice("Auren está ouvindo este comando...");
+    };
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript?.trim();
+      if (transcript) {
+        setVoiceNotice(`Comando recebido: ${transcript}`);
+        void handleSendMessage(transcript);
+      }
+    };
+    recognition.onerror = () => {
+      setVoiceNotice("Não consegui entender o áudio. Tente novamente.");
+      setIsListening(false);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
   return (
     <div className="relative w-full h-screen bg-black text-blue-100 font-mono overflow-hidden">
       {/* JARVIS HUD - Camada Superior de UI */}
@@ -133,7 +203,7 @@ export function JarvisUltraPremium() {
         >
           <div className="flex items-center gap-4">
             <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
-            <h1 className="text-lg font-black tracking-[0.3em] text-blue-400">JARVIS <span className="text-[9px] text-blue-500/50 tracking-widest">NET-SYNC V4</span></h1>
+            <h1 className="text-lg font-black tracking-[0.3em] text-blue-400">AUREN <span className="text-[9px] text-blue-500/50 tracking-widest">PERSONAL CORE</span></h1>
           </div>
 
           <div className="flex items-center gap-6">
@@ -141,6 +211,42 @@ export function JarvisUltraPremium() {
               <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> WEB_SYNC: ON</span>
               <span className="flex items-center gap-1"><Brain className="w-3 h-3" /> NEURAL: STABLE</span>
             </div>
+            <div className="flex items-center gap-1 border border-blue-900/60 rounded p-1">
+              <button
+                type="button"
+                onClick={() => setPersonaMode("strategic")}
+                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                  personaMode === "strategic" ? "bg-blue-500/20 text-blue-300" : "text-blue-900"
+                }`}
+              >
+                ESTRATEGICO
+              </button>
+              <button
+                type="button"
+                onClick={() => setPersonaMode("companion")}
+                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                  personaMode === "companion" ? "bg-cyan-500/20 text-cyan-300" : "text-blue-900"
+                }`}
+              >
+                COMPANHEIRO
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={toggleVoiceListening}
+              className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${isListening ? "border-rose-400 text-rose-300 bg-rose-400/10" : "border-blue-900 text-blue-400"}`}
+              title="Reconhecimento de voz por comando"
+            >
+              <Mic className="inline-block w-3 h-3 mr-1" />{isListening ? "OUVINDO" : "FALAR"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setVoiceOutputEnabled(value => !value)}
+              className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${voiceOutputEnabled ? "border-cyan-400 text-cyan-300 bg-cyan-400/10" : "border-blue-900 text-blue-400"}`}
+              title="Resposta falada em português brasileiro"
+            >
+              <Volume2 className="inline-block w-3 h-3 mr-1" />{voiceOutputEnabled ? "VOZ ON" : "VOZ OFF"}
+            </button>
             <motion.button
               whileHover={{ scale: 1.05, borderColor: "rgba(59, 130, 246, 0.5)" }}
               onClick={() => setDeepThinkingEnabled(!deepThinkingEnabled)}
@@ -252,6 +358,11 @@ export function JarvisUltraPremium() {
 
         {/* Input Terminal - Design Industrial Stark */}
         <footer className="px-8 py-8 border-t border-blue-500/10 bg-black/60">
+          {voiceNotice && (
+            <div className="mb-3 text-[9px] uppercase tracking-widest text-cyan-400/70">
+              {voiceNotice}
+            </div>
+          )}
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl blur opacity-30 group-focus-within:opacity-100 transition duration-1000"></div>
             <div className="relative flex items-center bg-black border border-blue-500/20 rounded-xl overflow-hidden">
@@ -269,7 +380,7 @@ export function JarvisUltraPremium() {
               <motion.button
                 whileHover={{ backgroundColor: "rgba(59, 130, 246, 0.1)" }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleSendMessage}
+                onClick={() => void handleSendMessage()}
                 disabled={isLoading || !input.trim()}
                 className="pr-6 pl-4 py-5 flex items-center gap-3 text-blue-400 disabled:text-blue-900 transition-colors group/btn"
               >
