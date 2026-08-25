@@ -30,7 +30,7 @@ export function JarvisUltraPremium() {
   const [systemStatus, setSystemStatus] = useState<"nominal" | "processing" | "alert">("nominal");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const sendMessageMutation = trpc.jarvisUnified.sendMessageWithContext.useMutation();
+  const sendMessageMutation = trpc.chat.sendMessage.useMutation();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

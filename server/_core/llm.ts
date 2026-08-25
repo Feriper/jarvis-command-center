@@ -212,14 +212,25 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = () =>
-  ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions`
-    : "https://forge.manus.im/v1/chat/completions";
+const hasForgeProvider = () => ENV.forgeApiKey.trim().length > 0;
+
+const resolveApiUrl = () => {
+  if (hasForgeProvider()) {
+    const baseUrl = ENV.forgeApiUrl.trim() || "https://forge.manus.im";
+    return `${baseUrl.replace(/\/$/, "")}/v1/chat/completions`;
+  }
+
+  return `${ENV.openAiApiUrl.replace(/\/$/, "")}/chat/completions`;
+};
+
+const resolveApiKey = () =>
+  hasForgeProvider() ? ENV.forgeApiKey : ENV.openAiApiKey;
 
 const assertApiKey = () => {
-  if (!ENV.forgeApiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+  if (!resolveApiKey().trim()) {
+    throw new Error(
+      "Configure BUILT_IN_FORGE_API_KEY, OPENAI_API_KEY ou um endpoint OpenAI-compatible local"
+    );
   }
 };
 
@@ -364,6 +375,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   if (model) {
     payload.model = model;
+  } else if (!hasForgeProvider() && ENV.openAiModel.trim()) {
+    payload.model = ENV.openAiModel;
   }
 
   if (tools && tools.length > 0) {
@@ -405,7 +418,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${resolveApiKey()}`,
     },
     body: JSON.stringify(payload),
   });
@@ -417,7 +430,17 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     );
   }
 
-  return (await response.json()) as InvokeResult;
+  const result = await response.json() as Partial<InvokeResult> & {
+    error?: unknown;
+  };
+  if (!Array.isArray(result.choices) || result.choices.length === 0) {
+    const providerError = typeof result.error === "string"
+      ? result.error
+      : JSON.stringify(result.error || result);
+    throw new Error(`LLM provider returned no choices: ${providerError}`);
+  }
+
+  return result as InvokeResult;
 }
 
 export type ModelInfo = {
@@ -435,12 +458,12 @@ export type ModelsResponse = {
 export async function listLLMModels(): Promise<ModelsResponse> {
   assertApiKey();
 
-  const url = ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0
-    ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/models`
-    : "https://forge.manus.im/v1/models";
+  const url = hasForgeProvider()
+    ? `${(ENV.forgeApiUrl.trim() || "https://forge.manus.im").replace(/\/$/, "")}/v1/models`
+    : `${ENV.openAiApiUrl.replace(/\/$/, "")}/models`;
 
   const response = await fetchWithBackoff(url, {
-    headers: { authorization: `Bearer ${ENV.forgeApiKey}` },
+    headers: { authorization: `Bearer ${resolveApiKey()}` },
   });
 
   if (!response.ok) {

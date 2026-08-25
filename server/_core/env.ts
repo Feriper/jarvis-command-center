@@ -7,4 +7,11 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  openAiApiUrl: process.env.OPENAI_API_BASE ?? "https://api.openai.com/v1",
+  openAiApiKey: process.env.OPENAI_API_KEY ?? "",
+  openAiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+  localMode: process.env.JARVIS_LOCAL_MODE === "true" || !process.env.DATABASE_URL,
+  localOpenId: process.env.JARVIS_LOCAL_OPEN_ID ?? "jarvis-local-user",
+  localUserName: process.env.JARVIS_LOCAL_USER_NAME ?? "Usuário local",
+  localUserEmail: process.env.JARVIS_LOCAL_USER_EMAIL ?? "",
 };

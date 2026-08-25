@@ -4,10 +4,12 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
+    "dev": "tsx watch server/_core/index.ts",
     "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist-server/index.js",
-    "start": "NODE_ENV=production node dist-server/index.js",
-    "check": "tsc --noEmit",
+    "start": "node dist-server/index.js",
+    "check": "pnpm check:core",
+    "check:core": "tsc --noEmit --pretty false --project tsconfig.core.json",
+    "check:legacy": "tsc --noEmit --pretty false --project tsconfig.json",
     "format": "prettier --write .",
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate"

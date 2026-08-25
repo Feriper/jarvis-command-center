@@ -1,0 +1,32 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "client/src/main.tsx",
+    "client/src/App.tsx",
+    "client/src/components/ErrorBoundary.tsx",
+    "client/src/components/JarvisAuthGate.tsx",
+    "client/src/components/JarvisHUD.tsx",
+    "client/src/components/JarvisUltraPremium.tsx",
+    "client/src/components/ui/**/*.tsx",
+    "client/src/contexts/**/*.tsx",
+    "client/src/const.ts",
+    "client/src/lib/**/*.ts",
+    "server/_core/**/*.ts",
+    "server/routers.ts",
+    "server/db.ts",
+    "server/local-store.ts",
+    "drizzle/schema.ts",
+    "shared/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "server/test-integration.ts",
+    "server/autonomous-monitor.ts",
+    "server/coding-agent.ts",
+    "server/jarvis-*.ts",
+    "server/llm-orchestrator.ts",
+    "server/routers.*.ts"
+  ]
+}

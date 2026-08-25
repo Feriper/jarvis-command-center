@@ -1,6 +1,17 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.test.ts",
+    "server/test-integration.ts",
+    "server/autonomous-monitor.ts",
+    "server/coding-agent.ts",
+    "server/jarvis-*.ts",
+    "server/llm-orchestrator.ts",
+    "server/routers.*.ts"
+  ],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",

@@ -17,6 +17,16 @@ import {
   financialProjections, InsertFinancialProjection
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import {
+  createLocalConversation,
+  getLocalConversations,
+  getLocalMessages,
+  getLocalMemory,
+  getLocalUser,
+  saveLocalMemory,
+  saveLocalMessage,
+  upsertLocalUser,
+} from "./local-store";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -37,6 +47,11 @@ export async function getDb() {
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
+  }
+
+  if (ENV.localMode) {
+    await upsertLocalUser(user);
+    return;
   }
 
   const db = await getDb();
@@ -94,6 +109,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 }
 
 export async function getUserByOpenId(openId: string) {
+  if (ENV.localMode) {
+    return openId === ENV.localOpenId ? await getLocalUser(openId) : undefined;
+  }
+
   const db = await getDb();
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
@@ -128,12 +147,16 @@ export async function deleteTask(taskId: number, userId: number) {
 
 // Chat methods
 export async function getConversations(userId: number) {
+  if (ENV.localMode) return getLocalConversations(userId);
+
   const db = await getDb();
   if (!db) return [];
   return await db.select().from(conversations).where(eq(conversations.userId, userId)).orderBy(desc(conversations.updatedAt));
 }
 
 export async function createConversation(conv: InsertConversation) {
+  if (ENV.localMode) return createLocalConversation(conv);
+
   const db = await getDb();
   if (!db) return null;
   const [result] = await db.insert(conversations).values(conv);
@@ -141,12 +164,16 @@ export async function createConversation(conv: InsertConversation) {
 }
 
 export async function getMessages(conversationId: number) {
+  if (ENV.localMode) return getLocalMessages(conversationId);
+
   const db = await getDb();
   if (!db) return [];
   return await db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt);
 }
 
 export async function saveMessage(message: InsertChatMessage) {
+  if (ENV.localMode) return saveLocalMessage(message);
+
   const db = await getDb();
   if (!db) return null;
   const [result] = await db.insert(chatMessages).values(message);
@@ -182,6 +209,8 @@ export async function getAlerts(userId: number) {
 
 // Memory & Knowledge methods
 export async function getMemory(userId: number, category?: string) {
+  if (ENV.localMode) return getLocalMemory(userId, category);
+
   const db = await getDb();
   if (!db) return [];
   
@@ -196,6 +225,8 @@ export async function getMemory(userId: number, category?: string) {
 }
 
 export async function saveMemory(memory: InsertUserMemory) {
+  if (ENV.localMode) return saveLocalMemory(memory);
+
   const db = await getDb();
   if (!db) return null;
   const [result] = await db.insert(userMemory).values(memory).onDuplicateKeyUpdate({

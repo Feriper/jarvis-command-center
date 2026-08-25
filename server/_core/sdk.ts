@@ -25,13 +25,22 @@ export type SessionPayload = {
 };
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
+
+function isLoopbackRequest(req: Request): boolean {
+  const host = String(req.headers.host || "").split(":")[0].toLowerCase();
+  const remoteAddress = String(req.socket.remoteAddress || "")
+    .replace(/^::ffff:/, "")
+    .toLowerCase();
+  return ["localhost", "127.0.0.1", "::1"].includes(host)
+    || ["localhost", "127.0.0.1", "::1"].includes(remoteAddress);
+}
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
 
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
     console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
-    if (!ENV.oAuthServerUrl) {
+    if (!ENV.oAuthServerUrl && !ENV.localMode) {
       console.error(
         "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
       );
@@ -256,6 +265,14 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<AuthenticatedUser> {
+    // Local-first mode is deliberately limited to loopback requests. It lets
+    // the Windows app start without OAuth or MySQL while keeping remote access
+    // on the normal signed-session path.
+    if (ENV.localMode && isLoopbackRequest(req)) {
+      const localUser = await db.getUserByOpenId(ENV.localOpenId);
+      if (localUser) return localUser;
+    }
+
     // 1. Prefer the session cookie (regular OAuth login).
     const cookies = this.parseCookies(req.headers.cookie);
     let sessionToken = cookies.get(COOKIE_NAME);

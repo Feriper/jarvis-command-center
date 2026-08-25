@@ -14,12 +14,11 @@ export function JarvisAuthGate({ onAuthSuccess }: AuthGateProps) {
   const [success, setSuccess] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
 
-  // Whitelist de e-mails autorizados
-  const AUTHORIZED_EMAILS = [
-    "seu-email@example.com",
-    "familia@example.com",
-    "amigo-confiavel@example.com",
-  ];
+  const AUTHORIZED_EMAILS = (import.meta.env.VITE_AUTHORIZED_EMAILS || "")
+    .split(",")
+    .map((value: string) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const configuredPassword = import.meta.env.VITE_AUTH_GATE_PASSWORD || "";
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +39,13 @@ export function JarvisAuthGate({ onAuthSuccess }: AuthGateProps) {
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
+    if (AUTHORIZED_EMAILS.length === 0 || !configuredPassword) {
+      setError("CONFIGURAÇÃO INCOMPLETA: use VITE_AUTHORIZED_EMAILS e VITE_AUTH_GATE_PASSWORD no .env, ou ative VITE_LOCAL_MODE=true.");
+      setIsLoading(false);
+      setScanProgress(0);
+      return;
+    }
+
     if (!AUTHORIZED_EMAILS.includes(email.toLowerCase())) {
       setError("ACESSO NEGADO: Identidade não reconhecida no banco de dados Stark.");
       setIsLoading(false);
@@ -47,7 +53,7 @@ export function JarvisAuthGate({ onAuthSuccess }: AuthGateProps) {
       return;
     }
 
-    if (password !== "jarvis2026") {
+    if (password !== configuredPassword) {
       setError("ERRO DE CRIPTOGRAFIA: Senha incorreta.");
       setIsLoading(false);
       setScanProgress(0);
