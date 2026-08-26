@@ -20,7 +20,7 @@ O Auren oferece diagnóstico somente leitura, prévia de temporários, voz por c
 | Ollama | Servidor de IA local gratuito | [ollama.com/download/windows](https://ollama.com/download/windows) |
 | .NET 8 SDK | Testar o companion da bandeja | [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0) |
 
-O Ryzen 5 3400G com 16 GB de RAM deve conseguir executar o servidor e um modelo local pequeno, mas a velocidade depende do Windows, do armazenamento e da quantidade de contexto. O modelo de 3B usado no arranque ocupa aproximadamente 1,9 GB conforme a página da biblioteca do Ollama [1]. Geração local pesada de vídeo não é um objetivo adequado para essa máquina.
+O Ryzen 5 3400G com 16 GB de RAM deve conseguir executar o servidor e um modelo local pequeno, mas a velocidade depende do Windows, do armazenamento e da quantidade de contexto. O modo rápido usa o Qwen2.5 de 1,5B, com aproximadamente 986 MB conforme a página da biblioteca do Ollama [1]. O modelo de 3B pode ser usado quando você preferir mais qualidade em troca de latência. Geração local pesada de vídeo não é um objetivo adequado para essa máquina.
 
 ## Instalação sem chave paga
 
@@ -36,10 +36,10 @@ Copy-Item .env.example .env
 Instale o Ollama pelo [download oficial para Windows](https://ollama.com/download/windows). Depois confirme que ele está funcionando e baixe o modelo uma vez:
 
 ```powershell
-ollama pull qwen2.5:3b
+ollama pull qwen2.5:1.5b
 ```
 
-A página oficial do modelo disponibiliza o comando `ollama run qwen2.5:3b` e informa suporte multilíngue, incluindo português [1]. O servidor compatível com a API OpenAI fica normalmente em `http://127.0.0.1:11434/v1` [2].
+A página oficial do modelo disponibiliza o comando `ollama run qwen2.5:1.5b` e informa suporte multilíngue, incluindo português [1]. O servidor compatível com a API OpenAI fica normalmente em `http://127.0.0.1:11434/v1` [2].
 
 Não preencha `OPENAI_API_KEY`. O arquivo `.env.example` já configura:
 
@@ -48,7 +48,7 @@ AUREN_LLM_PROVIDER=local
 AUREN_LOCAL_LLM=true
 AUREN_LOCAL_LLM_BASE=http://127.0.0.1:11434/v1
 AUREN_LOCAL_LLM_KEY=ollama
-AUREN_LOCAL_LLM_MODEL=qwen2.5:3b
+AUREN_LOCAL_LLM_MODEL=qwen2.5:1.5b
 ```
 
 Inicie o Auren:
@@ -62,7 +62,7 @@ Abra `http://127.0.0.1:3000`. O servidor local não precisa enviar suas conversa
 
 ## Inicializador automático
 
-Depois da primeira instalação, o caminho mais simples é executar [`Iniciar-Jarvis-Windows.bat`](./Iniciar-Jarvis-Windows.bat). Apesar do nome histórico do arquivo, ele inicia o **Auren**, verifica Node.js, pnpm e Ollama, baixa `qwen2.5:3b` somente se ainda não estiver instalado, configura o modo local e inicia o servidor.
+Depois da primeira instalação, o caminho mais simples é executar [`Iniciar-Jarvis-Windows.bat`](./Iniciar-Jarvis-Windows.bat). Apesar do nome histórico do arquivo, ele inicia o **Auren**, verifica Node.js, pnpm e Ollama, baixa `qwen2.5:1.5b` somente se ainda não estiver instalado, configura o modo local e inicia o servidor.
 
 Para atualizar sem baixar arquivo por arquivo, execute [`Atualizar-e-Iniciar-Auren.bat`](./Atualizar-e-Iniciar-Auren.bat). Ele usa `git pull --ff-only` apenas em um clone limpo e não sobrescreve alterações locais.
 
@@ -78,7 +78,7 @@ Para atualizar sem baixar arquivo por arquivo, execute [`Atualizar-e-Iniciar-Aur
 | Diagnóstico do PC | Ativo, somente leitura |
 | Prévia de limpeza | Ativo, conta temporários e não apaga nada |
 | Ponte Windows | Backend pronto, exige token local e ARMAR AÇÕES |
-| Imagem | Depende de provedor de imagem; não é garantida pelo Ollama 3B |
+| Imagem | Depende de provedor de imagem; não é garantida pelo Ollama de texto |
 | Vídeo | Ainda não implementado no núcleo |
 | Companion de bandeja | Esqueleto nativo; sem microfone nesta versão |
 | Atualizador nativo assinado | Planejado; o `.bat` é o caminho provisório |
@@ -121,7 +121,7 @@ pnpm build
 
 ## Referências
 
-[1] [Ollama — qwen2.5:3b](https://ollama.com/library/qwen2.5:3b): comando de execução, tamanho aproximado, parâmetros e suporte multilíngue.
+[1] [Ollama — qwen2.5:1.5b](https://ollama.com/library/qwen2.5:1.5b): comando de execução, tamanho aproximado, parâmetros e suporte multilíngue.
 
 [2] [Ollama — OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility): endpoint local `/v1`, chave fictícia `ollama` e compatibilidade com `/v1/chat/completions`.
 

@@ -45,17 +45,17 @@ set "AUREN_LLM_PROVIDER=local"
 set "AUREN_LOCAL_LLM=true"
 set "AUREN_LOCAL_LLM_BASE=http://127.0.0.1:11434/v1"
 set "AUREN_LOCAL_LLM_KEY=ollama"
-set "AUREN_LOCAL_LLM_MODEL=qwen2.5:3b"
+set "AUREN_LOCAL_LLM_MODEL=qwen2.5:1.5b"
 set "JARVIS_DATA_DIR=%LOCALAPPDATA%\Auren\data"
 set "JARVIS_MAX_LOCAL_MESSAGES=80"
 set "JARVIS_MAX_LOCAL_CONVERSATIONS=20"
 set "JARVIS_MAX_LOCAL_MEMORY=200"
 
-ollama list 2>nul | findstr /I /C:"qwen2.5:3b" >nul
+ollama list 2>nul | findstr /I /C:"qwen2.5:1.5b" >nul
 if errorlevel 1 (
-  echo O modelo local qwen2.5:3b ainda nao foi baixado.
+  echo O modelo local rapido qwen2.5:1.5b ainda nao foi baixado.
   echo Fazendo o download uma unica vez. Isso nao gera cobranca.
-  ollama pull qwen2.5:3b
+  ollama pull qwen2.5:1.5b
   if errorlevel 1 (
     echo ERRO: nao foi possivel baixar o modelo local.
     echo Verifique se o Ollama esta aberto e tente novamente.
@@ -72,7 +72,7 @@ if not exist "node_modules" (
 
 echo.
 echo Auren sera aberto em http://127.0.0.1:3000
-echo IA: Ollama local - qwen2.5:3b - sem chave e sem cobranca por mensagem
+echo IA: Ollama local - qwen2.5:1.5b - modo rapido, sem chave e sem cobranca por mensagem
 echo Dados importantes: %JARVIS_DATA_DIR%
 echo Pressione Ctrl+C para encerrar.
 echo.
