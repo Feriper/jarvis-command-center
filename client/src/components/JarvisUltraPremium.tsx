@@ -47,6 +47,7 @@ export function JarvisUltraPremium() {
   const sendMessageMutation = trpc.chat.sendMessage.useMutation();
   const generateImageMutation = trpc.chat.generateImage.useMutation();
   const systemSnapshotQuery = trpc.local.getSnapshot.useQuery(undefined, { enabled: false });
+  const bridgeStatusQuery = trpc.local.bridgeStatus.useQuery(undefined, { enabled: false });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -324,6 +325,14 @@ export function JarvisUltraPremium() {
             </button>
             <button
               type="button"
+              onClick={() => void bridgeStatusQuery.refetch()}
+              className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${bridgeStatusQuery.data?.armed ? "border-amber-400 text-amber-300" : "border-blue-900 text-blue-400"}`}
+              title="Verificar a ponte Windows local"
+            >
+              <Shield className="inline-block w-3 h-3 mr-1" />PONTE {bridgeStatusQuery.data ? (bridgeStatusQuery.data.armed ? "ARMADA" : "DESARMADA") : "?"}
+            </button>
+            <button
+              type="button"
               onClick={() => void systemSnapshotQuery.refetch()}
               className="px-2 py-1.5 border border-blue-900 rounded text-[9px] font-bold text-blue-400 transition-all"
               title="Diagnóstico somente leitura do computador"
@@ -463,6 +472,16 @@ export function JarvisUltraPremium() {
           {voiceNotice && (
             <div className="mb-3 text-[9px] uppercase tracking-widest text-cyan-400/70">
               {voiceNotice}
+            </div>
+          )}
+          {bridgeStatusQuery.error && (
+            <div className="mb-3 p-3 border border-amber-500/10 text-[9px] uppercase tracking-widest text-amber-300/70">
+              PONTE: {bridgeStatusQuery.error.message}
+            </div>
+          )}
+          {bridgeStatusQuery.data && (
+            <div className="mb-3 p-3 border border-cyan-500/10 text-[9px] uppercase tracking-widest text-cyan-300/70">
+              PONTE WINDOWS: {bridgeStatusQuery.data.armed ? "ARMADA" : "DESARMADA"} · RAIZ: {bridgeStatusQuery.data.root}
             </div>
           )}
           {systemSnapshotQuery.data && (
