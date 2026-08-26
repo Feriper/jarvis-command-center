@@ -18,7 +18,7 @@ export async function createImage(options: {
 
   if (!ENV.openAiApiKey) {
     throw new Error(
-      "Configure BUILT_IN_FORGE_API_KEY ou OPENAI_API_KEY para ativar a geração de imagens"
+      "O chat do Auren está funcionando localmente e sem custo. A geração de imagem ainda exige um provedor de imagem opcional; ela não é fornecida pelo Ollama de texto neste momento."
     );
   }
 

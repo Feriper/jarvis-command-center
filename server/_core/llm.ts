@@ -212,25 +212,60 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
+type LlmProvider = "local" | "forge" | "openai";
+
 const hasForgeProvider = () => ENV.forgeApiKey.trim().length > 0;
+const hasOpenAiProvider = () => ENV.openAiApiKey.trim().length > 0;
+
+const resolveProvider = (): LlmProvider => {
+  const explicit = ENV.llmProvider.trim().toLowerCase();
+  if (explicit === "local") return "local";
+  if (explicit === "forge") return "forge";
+  if (explicit === "openai") return "openai";
+  if (ENV.localMode && ENV.localLlmEnabled) return "local";
+  if (hasForgeProvider()) return "forge";
+  return "openai";
+};
 
 const resolveApiUrl = () => {
-  if (hasForgeProvider()) {
+  const provider = resolveProvider();
+  if (provider === "local") {
+    return `${ENV.localLlmApiUrl.replace(/\/$/, "")}/chat/completions`;
+  }
+  if (provider === "forge") {
     const baseUrl = ENV.forgeApiUrl.trim() || "https://forge.manus.im";
     return `${baseUrl.replace(/\/$/, "")}/v1/chat/completions`;
   }
-
   return `${ENV.openAiApiUrl.replace(/\/$/, "")}/chat/completions`;
 };
 
-const resolveApiKey = () =>
-  hasForgeProvider() ? ENV.forgeApiKey : ENV.openAiApiKey;
+const resolveApiKey = () => {
+  const provider = resolveProvider();
+  if (provider === "local") return ENV.localLlmApiKey;
+  if (provider === "forge") return ENV.forgeApiKey;
+  return ENV.openAiApiKey;
+};
 
-const assertApiKey = () => {
-  if (!resolveApiKey().trim()) {
-    throw new Error(
-      "Configure BUILT_IN_FORGE_API_KEY, OPENAI_API_KEY ou um endpoint OpenAI-compatible local"
-    );
+const resolveDefaultModel = () => {
+  const provider = resolveProvider();
+  if (provider === "local") return ENV.localLlmModel;
+  if (provider === "openai") return ENV.openAiModel;
+  return "";
+};
+
+const assertProviderConfigured = () => {
+  const provider = resolveProvider();
+  if (provider === "local") {
+    if (!ENV.localLlmEnabled) {
+      throw new Error("Auren local está desativado; escolha outro AUREN_LLM_PROVIDER");
+    }
+    return;
+  }
+  if (provider === "forge" && !hasForgeProvider()) {
+    throw new Error("Configure BUILT_IN_FORGE_API_KEY ou escolha AUREN_LLM_PROVIDER=local");
+  }
+  if (provider === "openai" && !hasOpenAiProvider()) {
+    throw new Error("Nenhuma IA local foi encontrada. Instale o Ollama ou configure uma chave OpenAI-compatible");
   }
 };
 
@@ -351,7 +386,7 @@ const fetchWithBackoff = async (
 };
 
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
-  assertApiKey();
+  assertProviderConfigured();
 
   const {
     messages,
@@ -375,8 +410,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   if (model) {
     payload.model = model;
-  } else if (!hasForgeProvider() && ENV.openAiModel.trim()) {
-    payload.model = ENV.openAiModel;
+  } else {
+    const defaultModel = resolveDefaultModel();
+    if (defaultModel) payload.model = defaultModel;
   }
 
   if (tools && tools.length > 0) {
@@ -456,11 +492,14 @@ export type ModelsResponse = {
 };
 
 export async function listLLMModels(): Promise<ModelsResponse> {
-  assertApiKey();
+  assertProviderConfigured();
 
-  const url = hasForgeProvider()
-    ? `${(ENV.forgeApiUrl.trim() || "https://forge.manus.im").replace(/\/$/, "")}/v1/models`
-    : `${ENV.openAiApiUrl.replace(/\/$/, "")}/models`;
+  const provider = resolveProvider();
+  const url = provider === "local"
+    ? `${ENV.localLlmApiUrl.replace(/\/$/, "")}/models`
+    : provider === "forge"
+      ? `${(ENV.forgeApiUrl.trim() || "https://forge.manus.im").replace(/\/$/, "")}/v1/models`
+      : `${ENV.openAiApiUrl.replace(/\/$/, "")}/models`;
 
   const response = await fetchWithBackoff(url, {
     headers: { authorization: `Bearer ${resolveApiKey()}` },
