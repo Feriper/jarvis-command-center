@@ -44,4 +44,8 @@ Para automação de interface, `FlaUI/FlaUI` é uma biblioteca .NET de UI Automa
 
 A documentação do FlaUI confirma que ele é uma biblioteca .NET baseada nas APIs nativas de UI Automation da Microsoft, com suporte a UIA2/UIA3 e busca de elementos por texto/árvore; também alerta que foco e eventos de entrada continuam sendo importantes. Fonte consultada: https://github.com/FlaUI/FlaUI
 
-A documentação do TempCleaner confirma um desenho de manutenção mais seguro: presets Basic/Full/Custom, alvos allowlisted, bloqueio de raízes perigosas, fallback para limpeza somente do usuário sem elevação, dry-run, logs por execução, retenção configurável e confirmação interativa. Esses controles devem ser reproduzidos no módulo de manutenção do Auren; o Jarvis não deve apagar caminhos arbitrários. Fonte consultada: https://github.com/Armi1014/TempCleaner
+A documentação do TempCleaner confirma um desenho de manutenção mais seguro: presets Basic/Full/Custom, alvos allowlisted, bloqueio de raízes perigosas, fallback para limpeza somente do usuário sem elevação, dry-run, logs por execução, retenção configurável e confirmação interativa. Esses controles devem ser reproduzidos no módulo de manutenção do Auren; o Jarvis não deve apagar caminhos arbitrários.
+
+## Atualização nativa — verificação oficial
+
+A documentação oficial do Tauri Updater confirma que a assinatura dos artefatos é obrigatória, que a chave pública fica no aplicativo e que a chave privada deve permanecer secreta; também documenta artefatos Windows MSI/NSIS e endpoints HTTPS/JSON para o fluxo de atualização. Fonte consultada: https://v2.tauri.app/plugin/updater/ (2026-08-25).

@@ -166,3 +166,11 @@ Adicionar provedores de imagem/vídeo e adaptadores de jogos conforme necessidad
 - Falha de provedor não derruba o servidor nem corrompe a memória local.
 - Atualização inválida não substitui a versão ativa.
 - O uso de CPU/RAM do modo de espera é medido no PC real antes de ativar inicialização automática.
+
+## Referências
+
+[1] [Tauri Updater — documentação oficial](https://v2.tauri.app/plugin/updater/): assinatura obrigatória, chave pública no app, chave privada secreta, endpoints HTTPS/JSON e artefatos Windows MSI/NSIS.
+
+[2] [openWakeWord](https://github.com/dscripka/openWakeWord): detector de palavra de ativação, necessidade de calibrar limiar e medir falsos positivos/falsos negativos.
+
+[3] [whisper.cpp](https://github.com/ggml-org/whisper.cpp): transcrição com execução em CPU e suporte documentado a VAD/Windows.
