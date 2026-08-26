@@ -48,6 +48,7 @@ export function JarvisUltraPremium() {
   const generateImageMutation = trpc.chat.generateImage.useMutation();
   const systemSnapshotQuery = trpc.local.getSnapshot.useQuery(undefined, { enabled: false });
   const bridgeStatusQuery = trpc.local.bridgeStatus.useQuery(undefined, { enabled: false });
+  const cleanupPreviewQuery = trpc.local.cleanupPreview.useQuery(undefined, { enabled: false });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -325,6 +326,14 @@ export function JarvisUltraPremium() {
             </button>
             <button
               type="button"
+              onClick={() => void cleanupPreviewQuery.refetch()}
+              className="px-2 py-1.5 border border-blue-900 rounded text-[9px] font-bold text-blue-400 transition-all"
+              title="Prévia somente leitura dos temporários"
+            >
+              LIMPEZA PREVIEW
+            </button>
+            <button
+              type="button"
               onClick={() => void bridgeStatusQuery.refetch()}
               className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${bridgeStatusQuery.data?.armed ? "border-amber-400 text-amber-300" : "border-blue-900 text-blue-400"}`}
               title="Verificar a ponte Windows local"
@@ -472,6 +481,11 @@ export function JarvisUltraPremium() {
           {voiceNotice && (
             <div className="mb-3 text-[9px] uppercase tracking-widest text-cyan-400/70">
               {voiceNotice}
+            </div>
+          )}
+          {cleanupPreviewQuery.data && (
+            <div className="mb-3 p-3 border border-amber-500/10 text-[9px] uppercase tracking-widest text-amber-300/70">
+              PRÉVIA: {cleanupPreviewQuery.data.targets.map(target => `${target.label}: ${target.files} arquivos`).join(" · ")} · nenhuma exclusão executada
             </div>
           )}
           {bridgeStatusQuery.error && (
