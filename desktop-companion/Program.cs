@@ -153,7 +153,7 @@ sealed class MainForm : Form
     private readonly WebView2 webView;
     private readonly Label updateStatus;
     private readonly Button updateButton;
-    private readonly string serverUrl;
+    private string serverUrl;
 
     public MainForm(CompanionApplicationContext context)
     {
@@ -304,18 +304,17 @@ sealed class MainForm : Form
 
     private async Task<bool> EnsureServerAvailableAsync()
     {
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(1.5) };
+        using var client = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(2.5) };
+        var candidatePorts = Enumerable.Range(3000, 20).ToArray();
         for (var attempt = 0; attempt < 2; attempt++)
         {
-            try
+            var ready = await FindRespondingServerAsync(client, candidatePorts);
+            if (ready is not null)
             {
-                using var response = await client.GetAsync(serverUrl);
-                if ((int)response.StatusCode < 500) return true;
+                serverUrl = ready;
+                return true;
             }
-            catch
-            {
-                // O servidor ainda pode estar iniciando.
-            }
+            await Task.Delay(500);
         }
 
         var root = UpdateService.FindProjectRoot();
@@ -338,20 +337,37 @@ sealed class MainForm : Form
             return false;
         }
 
-        for (var attempt = 0; attempt < 24; attempt++)
+        for (var attempt = 0; attempt < 30; attempt++)
         {
             await Task.Delay(800);
-            try
+            var ready = await FindRespondingServerAsync(client, candidatePorts);
+            if (ready is not null)
             {
-                using var response = await client.GetAsync(serverUrl);
-                if ((int)response.StatusCode < 500) return true;
-            }
-            catch
-            {
-                // Aguarda o Vite/Express inicializar.
+                serverUrl = ready;
+                return true;
             }
         }
         return false;
+    }
+
+    private static async Task<string?> FindRespondingServerAsync(HttpClient client, IEnumerable<int> ports)
+    {
+        var checks = ports.Select(async port =>
+        {
+            var candidate = $"http://127.0.0.1:{port}";
+            try
+            {
+                using var response = await client.GetAsync(candidate, HttpCompletionOption.ResponseHeadersRead);
+                return (int)response.StatusCode < 500 ? candidate : null;
+            }
+            catch
+            {
+                // A porta pode estar fechada ou o servidor ainda estar iniciando.
+                return null;
+            }
+        });
+        var results = await Task.WhenAll(checks);
+        return results.FirstOrDefault(value => value is not null);
     }
 
     private void HandleNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
