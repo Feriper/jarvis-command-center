@@ -1,0 +1,35 @@
+name: Validate Auren Companion
+
+on:
+  push:
+    paths:
+      - "desktop-companion/**"
+      - ".github/workflows/companion-build.yml"
+  pull_request:
+    paths:
+      - "desktop-companion/**"
+      - ".github/workflows/companion-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-companion:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-companion
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore companion
+        run: dotnet restore Auren.Companion.csproj
+
+      - name: Build companion
+        run: dotnet build Auren.Companion.csproj --configuration Release --no-restore

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "product": "Auren Companion",
+  "channel": "stable",
+  "audio": {
+    "enabled": false,
+    "wakeWord": "auren",
+    "saveRawAudio": false,
+    "maxCommandSeconds": 12
+  },
+  "pairing": {
+    "serverUrl": "http://127.0.0.1:3000",
+    "paired": false,
+    "tokenStorage": "Windows Credential Manager"
+  },
+  "automation": {
+    "bridgeEnabled": false,
+    "armed": false,
+    "requireConfirmation": true,
+    "allowlistVersion": 1
+  },
+  "updates": {
+    "enabled": false,
+    "manifestUrl": "",
+    "requireSignature": true,
+    "allowRollback": true
+  }
+}
