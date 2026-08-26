@@ -28,6 +28,7 @@ RUN npm install -g pnpm
 
 # Copiar apenas os arquivos necessários do builder
 COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod
 
 # Copiar build do stage anterior
