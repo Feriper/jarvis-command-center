@@ -16,6 +16,8 @@ import {
   Mic2,
   Monitor,
   MoreHorizontal,
+  Plug,
+  RefreshCw,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -101,6 +103,7 @@ export function JarvisUltraPremium() {
   const [showTools, setShowTools] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showModelInfo, setShowModelInfo] = useState(false);
+  const [showConnectors, setShowConnectors] = useState(false);
   const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
   const [selectedMicrophone, setSelectedMicrophone] = useState(() => {
     try {
@@ -128,6 +131,10 @@ export function JarvisUltraPremium() {
     refetchOnWindowFocus: false,
   });
   const aiStatusQuery = trpc.local.aiStatus.useQuery(undefined, {
+    refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+  });
+  const connectorsQuery = trpc.local.connectors.useQuery(undefined, {
     refetchInterval: 30000,
     refetchOnWindowFocus: false,
   });
@@ -395,6 +402,7 @@ export function JarvisUltraPremium() {
                   <button type="button" onClick={() => chooseTool("diagnostic")} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-white/6"><Cpu className="h-4 w-4 text-slate-500" /> Diagnóstico do PC</button>
                   <button type="button" onClick={() => chooseTool("image")} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-white/6"><ImageIcon className="h-4 w-4 text-slate-500" /> Criar imagem</button>
                   <button type="button" onClick={() => setShowSettings(true)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-white/6"><Settings2 className="h-4 w-4 text-slate-500" /> Configurações</button>
+                  <button type="button" onClick={() => setShowConnectors(true)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-white/6"><Plug className="h-4 w-4 text-slate-500" /> Integrações</button>
                 </div>
 
                 <div className="mt-auto rounded-xl border border-white/8 bg-white/[0.025] p-3">
@@ -423,7 +431,7 @@ export function JarvisUltraPremium() {
 
           {showModelInfo && <div className="absolute left-4 top-16 z-30 w-72 rounded-xl border border-white/10 bg-[#2a2a2a] p-4 shadow-2xl sm:left-72"><p className="text-sm font-medium text-white">Auren local rápido</p><p className="mt-2 text-xs leading-5 text-slate-400">Qwen2.5 1,5B rodando no Ollama. Sem chave, sem cobrança e sem enviar a conversa para a nuvem.</p><div className={`mt-3 flex items-center gap-2 text-[11px] ${aiStatusQuery.data?.modelReady ? "text-emerald-200" : "text-amber-200"}`}><ShieldCheck className="h-3.5 w-3.5" /> {aiStatusQuery.data?.message || "Verificando o modelo local..."}</div></div>}
 
-          {mobileMenuOpen && <div className="absolute inset-x-3 top-16 z-30 rounded-xl border border-white/10 bg-[#171717] p-3 shadow-2xl md:hidden"><button type="button" onClick={handleNewConversation} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-white/6"><Plus className="h-4 w-4" /> Nova conversa</button><button type="button" onClick={() => { setShowSettings(true); setMobileMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-white/6"><Settings2 className="h-4 w-4" /> Configurações</button></div>}
+          {mobileMenuOpen && <div className="absolute inset-x-3 top-16 z-30 rounded-xl border border-white/10 bg-[#171717] p-3 shadow-2xl md:hidden"><button type="button" onClick={handleNewConversation} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-white/6"><Plus className="h-4 w-4" /> Nova conversa</button><button type="button" onClick={() => { setShowSettings(true); setMobileMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-white/6"><Settings2 className="h-4 w-4" /> Configurações</button><button type="button" onClick={() => { setShowConnectors(true); setMobileMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-white/6"><Plug className="h-4 w-4" /> Integrações</button></div>}
 
           <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6">
             <div className="mx-auto w-full max-w-3xl">
@@ -504,6 +512,8 @@ export function JarvisUltraPremium() {
           </footer>
         </section>
       </div>
+
+      {showConnectors && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm" role="dialog" aria-modal="true"><div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#242424] p-5 shadow-2xl"><div className="flex items-start justify-between"><div><h2 className="text-base font-semibold text-white">Integrações do Auren</h2><p className="mt-1 text-xs leading-5 text-slate-500">Conexões locais e serviços opcionais. Tokens ficam no ambiente local e nunca aparecem aqui.</p></div><div className="flex items-center gap-1"><button type="button" onClick={() => void connectorsQuery.refetch()} className="rounded-lg p-2 text-slate-500 hover:bg-white/6 hover:text-white" title="Atualizar estados"><RefreshCw className={`h-4 w-4 ${connectorsQuery.isFetching ? "animate-spin" : ""}`} /></button><button type="button" onClick={() => setShowConnectors(false)} className="rounded-lg p-2 text-slate-500 hover:bg-white/6 hover:text-white"><X className="h-4 w-4" /></button></div></div><div className="mt-5 grid gap-2 sm:grid-cols-2">{(connectorsQuery.data || []).map(connector => <div key={connector.id} className="rounded-xl border border-white/8 bg-[#2c2c2c] p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-medium text-white">{connector.label}</p><p className="mt-1 text-[11px] text-slate-500">{connector.category}</p></div><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] ${connector.state === "connected" ? "bg-emerald-300/10 text-emerald-200" : connector.state === "offline" ? "bg-rose-300/10 text-rose-200" : "bg-white/8 text-slate-400"}`}>{connector.stateLabel}</span></div><p className="mt-3 text-xs leading-5 text-slate-400">{connector.description}</p><div className="mt-3 flex flex-wrap gap-1.5">{connector.capabilities.map(capability => <span key={capability} className="rounded-md bg-white/6 px-2 py-1 text-[10px] text-slate-500">{capability}</span>)}</div></div>)}</div>{connectorsQuery.isLoading && <div className="mt-5 text-xs text-slate-500">Consultando integrações locais...</div>}<div className="mt-5 rounded-xl border border-cyan-300/10 bg-cyan-300/5 p-3 text-xs leading-5 text-cyan-100/70">Ollama e a ponte Windows podem funcionar sem serviço pago. Gmail, Google Workspace, Agenda, Outlook e outros serviços exigem conexão própria e permissões escolhidas por você; não são ativados automaticamente.</div></div></div>}
 
       {showSettings && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm" role="dialog" aria-modal="true"><div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#2a2a2a] p-5 shadow-2xl"><div className="flex items-start justify-between"><div><h2 className="text-base font-semibold text-white">Configurações do Auren</h2><p className="mt-1 text-xs leading-5 text-slate-500">Preferências locais de voz e personalidade.</p></div><button type="button" onClick={() => setShowSettings(false)} className="rounded-lg p-2 text-slate-500 hover:bg-white/6 hover:text-white"><X className="h-4 w-4" /></button></div><div className="mt-6"><label htmlFor="microphone-select" className="text-xs font-medium text-slate-300">Microfone</label><div className="relative mt-2"><select id="microphone-select" value={selectedMicrophone} onChange={event => setSelectedMicrophone(event.target.value)} className="w-full appearance-none rounded-xl border border-white/10 bg-[#202020] px-3 py-3 pr-9 text-sm text-slate-200 outline-none focus:border-cyan-300/40"><option value="">Microfone padrão do navegador</option>{microphones.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Microfone ${index + 1}`}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3.5 h-4 w-4 text-slate-500" /></div><button type="button" onClick={() => void requestMicrophone()} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-xs text-slate-300 hover:bg-white/6"><Mic className="h-3.5 w-3.5" /> Permitir e atualizar lista</button></div><div className="mt-6"><p className="text-xs font-medium text-slate-300">Personalidade</p><div className="mt-2 grid grid-cols-2 gap-2"><button type="button" onClick={() => setPersonaMode("strategic")} className={`rounded-xl border px-3 py-2.5 text-xs ${personaMode === "strategic" ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100" : "border-white/10 text-slate-400 hover:bg-white/6"}`}>Estratégico</button><button type="button" onClick={() => setPersonaMode("companion")} className={`rounded-xl border px-3 py-2.5 text-xs ${personaMode === "companion" ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100" : "border-white/10 text-slate-400 hover:bg-white/6"}`}>Companheiro</button></div></div><div className="mt-6 rounded-xl border border-amber-300/15 bg-amber-300/5 p-3 text-xs leading-5 text-amber-100/75">A palavra “Auren” no navegador é experimental e depende da aba permanecer aberta. O companion nativo será responsável pela escuta local contínua no futuro.</div></div></div>}
     </div>

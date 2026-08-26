@@ -92,7 +92,93 @@ async function exists(target: string): Promise<boolean> {
   }
 }
 
+async function getLocalConnectorCatalog() {
+  const ai = await getLocalAiStatus();
+  let bridge: { armed: boolean; stopped: boolean; version: string; root: string; message: string } | null = null;
+  try {
+    bridge = await getDesktopBridgeStatus();
+  } catch {
+    // A ponte é opcional e pode estar desligada.
+  }
+
+  return [
+    {
+      id: "ollama",
+      label: "Ollama local",
+      category: "IA",
+      state: ai.modelReady ? "connected" : ai.reachable ? "available" : "offline",
+      stateLabel: ai.modelReady ? "conectado" : ai.reachable ? "modelo ausente" : "offline",
+      description: ai.message,
+      capabilities: ["chat local", "persona", "memória"],
+    },
+    {
+      id: "windows-bridge",
+      label: "Ponte Windows",
+      category: "PC",
+      state: bridge && !bridge.stopped ? "connected" : "optional",
+      stateLabel: bridge && !bridge.stopped ? (bridge.armed ? "armada" : "conectada, desarmada") : "não conectada",
+      description: bridge?.message || "Inicie a ponte local e configure o token somente no .env.",
+      capabilities: ["janelas", "arquivos", "entrada autorizada"],
+    },
+    {
+      id: "screen",
+      label: "Tela do computador",
+      category: "PC",
+      state: bridge && !bridge.stopped ? "available" : "optional",
+      stateLabel: bridge && !bridge.stopped ? "disponível sob demanda" : "aguardando ponte",
+      description: "Captura visível e opt-in; não é gravação oculta.",
+      capabilities: ["captura", "observação visível"],
+    },
+    {
+      id: "github",
+      label: "GitHub",
+      category: "Serviços",
+      state: "optional",
+      stateLabel: "configuração opcional",
+      description: "Pode ser usado para atualizar o código e, no futuro, consultar repositórios com token local.",
+      capabilities: ["repositórios", "atualizações"],
+    },
+    {
+      id: "google",
+      label: "Gmail e Google Workspace",
+      category: "Serviços",
+      state: "optional",
+      stateLabel: "não configurado",
+      description: "Exige OAuth próprio no Windows; o Auren não reutiliza login ou senha de outra aplicação.",
+      capabilities: ["e-mail", "Drive", "documentos"],
+    },
+    {
+      id: "calendar",
+      label: "Google Agenda",
+      category: "Serviços",
+      state: "optional",
+      stateLabel: "não configurado",
+      description: "Exige OAuth próprio e permissões escolhidas pelo usuário.",
+      capabilities: ["eventos", "lembretes"],
+    },
+    {
+      id: "outlook",
+      label: "Outlook",
+      category: "Serviços",
+      state: "optional",
+      stateLabel: "não configurado",
+      description: "Exige conexão Microsoft própria; nenhuma conta é embutida no aplicativo.",
+      capabilities: ["e-mail", "calendário"],
+    },
+    {
+      id: "image",
+      label: "Imagem e multimídia",
+      category: "Criação",
+      state: "optional",
+      stateLabel: "módulo separado",
+      description: "Imagem local via ComfyUI é possível, mas exige modelos e pode ser lenta neste PC; vídeo ainda não está integrado.",
+      capabilities: ["imagem local opcional", "vídeo futuro"],
+    },
+  ] as const;
+}
+
 export const localSystemRouter = router({
+  connectors: protectedProcedure.query(() => getLocalConnectorCatalog()),
   bridgeStatus: protectedProcedure.query(() => getDesktopBridgeStatus()),
 
   aiStatus: protectedProcedure.query(() => getLocalAiStatus()),
