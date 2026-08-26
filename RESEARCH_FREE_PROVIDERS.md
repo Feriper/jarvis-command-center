@@ -95,3 +95,58 @@ LocalAI se apresenta como engine open source para texto, visão, voz, imagem e o
 | Imagem | ComfyUI local opcional | Hugging Face/Comfy Cloud | modelos, RAM/CPU e cota |
 | Vídeo | não recomendado localmente | créditos/cota de serviço externo | sem geração ilimitada gratuita confirmada |
 | PC/Windows | ponte local + allowlist | nenhum provedor externo | confirmação, logs e kill switch |
+
+## Automação, tela e atualização
+
+### UI Automation do Windows
+
+Fonte: https://learn.microsoft.com/en-us/windows/win32/winauto/entry-uiauto-win32
+
+A Microsoft descreve UI Automation como uma estrutura de acessibilidade que permite obter informação programática sobre a maioria dos elementos da interface e manipulá-los para testes e tecnologias assistivas. Isso é a base técnica para um executor nativo por controles, mas não resolve sozinho confirmação, foco, permissões, logs ou segurança do Auren.
+
+### Captura de tela
+
+Fonte: https://learn.microsoft.com/en-us/windows/apps/develop/media-authoring-processing/screen-capture
+
+As APIs Windows.Graphics.Capture permitem capturar janelas ou displays, inclusive produzir fluxo de frames. O companion ainda precisa implementar seleção de janela/display, pausa, indicação visível e política de não gravação para transformar isso em observação segura.
+
+### Atualização assinada
+
+Fonte: https://v2.tauri.app/plugin/updater/
+
+O updater do Tauri exige assinatura para validar que o update veio de fonte confiável; a chave pública fica no aplicativo e a chave privada deve permanecer secreta. No Windows, o fluxo produz instaladores MSI/NSIS e respectivas assinaturas. O Auren ainda usa o atualizador Git, portanto ainda faltam empacotamento, chave sob controle do usuário, release hosting e testes de rollback.
+
+[6] Microsoft UI Automation: https://learn.microsoft.com/en-us/windows/win32/winauto/entry-uiauto-win32
+[7] Windows screen capture: https://learn.microsoft.com/en-us/windows/apps/develop/media-authoring-processing/screen-capture
+[8] Tauri updater: https://v2.tauri.app/plugin/updater/
+
+## Velocidade e carregamento do modelo
+
+### Ollama keep_alive
+
+Fontes: https://docs.ollama.com/faq e https://docs.ollama.com/api/introduction
+
+A documentação oficial do Ollama informa que modelos ficam carregados por padrão por cinco minutos e que `keep_alive` pode manter o modelo carregado por uma duração ou indefinidamente. O Auren deve usar um valor controlado, como 10–15 minutos, para reduzir a demora da primeira mensagem sem ocupar a memória do PC para sempre. O endpoint local padrão é `http://localhost:11434/api`.
+
+### Decisões de otimização
+
+1. Enviar somente o histórico recente e o resumo de memória necessário, evitando contexto crescente.
+2. Limitar saída no modo rápido e desligar reflexão profunda por padrão.
+3. Fazer warm-up leve quando o Ollama estiver disponível, sem bloquear a abertura da interface.
+4. Evitar retries longos para o provedor local; uma falha local deve ser mostrada rapidamente.
+5. Exibir no Auren o estado `modelo pronto`, `carregando` ou `Ollama offline` e o tempo real da última resposta.
+6. Manter um modo de qualidade separado para o Qwen2.5 3B, sem trocar automaticamente em segundo plano.
+
+[12] Ollama FAQ: https://docs.ollama.com/faq
+[13] Ollama API Introduction: https://docs.ollama.com/api/introduction
+
+## Otimização nativa do chat
+
+Fonte: https://docs.ollama.com/api/chat
+
+O endpoint `POST /api/chat` do Ollama aceita `messages`, `options`, `stream`, `think` e `keep_alive`, e retorna métricas de carregamento e geração. Isso permite que o Auren use o endpoint nativo local em vez de depender apenas da camada compatível com OpenAI, mantenha o modelo carregado por um período controlado, desligue pensamento no modo rápido e exiba métricas reais.
+
+O modelo `qwen2.5:0.5b` está listado no Ollama com 494 milhões de parâmetros e aproximadamente 398 MB em quantização Q4_K_M, além de suporte multilíngue. É uma opção de resposta relâmpago com qualidade menor, que deve ser oferecida como modo explícito e não substituir silenciosamente o 1,5B.
+
+[14] Ollama chat API: https://docs.ollama.com/api/chat
+[15] Ollama Qwen2.5 0.5B: https://ollama.com/library/qwen2.5:0.5b

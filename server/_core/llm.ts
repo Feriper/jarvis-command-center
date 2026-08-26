@@ -385,6 +385,89 @@ const fetchWithBackoff = async (
     : new Error("LLM request failed after exhausting retries");
 };
 
+const getTextOnlyOllamaMessages = (messages: Message[]) => {
+  const normalized = messages.map(message => {
+    const parts = ensureArray(message.content);
+    const text = parts.map(part => {
+      if (typeof part === "string") return part;
+      return part.type === "text" ? part.text : null;
+    });
+    if (text.some(value => value === null)) return null;
+    return {
+      role: message.role,
+      content: text.filter((value): value is string => Boolean(value)).join("\n"),
+    };
+  });
+  return normalized.some(message => message === null) ? null : normalized;
+};
+
+const invokeOllamaNative = async ({
+  messages,
+  model,
+  maxTokens,
+  thinking,
+  reasoning,
+}: {
+  messages: Message[];
+  model: string;
+  maxTokens?: number;
+  thinking?: Record<string, unknown>;
+  reasoning?: Record<string, unknown>;
+}): Promise<InvokeResult> => {
+  const nativeMessages = getTextOnlyOllamaMessages(messages);
+  if (!nativeMessages) throw new Error("Ollama native path only accepts text messages");
+
+  const baseUrl = ENV.localLlmApiUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+  const payload = {
+    model,
+    messages: nativeMessages,
+    stream: false,
+    keep_alive: ENV.localLlmKeepAlive,
+    think: Boolean(ENV.localLlmThink || thinking || reasoning),
+    options: {
+      num_ctx: ENV.localLlmNumCtx,
+      num_predict: maxTokens ?? ENV.localLlmNumPredict,
+      temperature: 0.2,
+    },
+  };
+
+  const response = await fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Ollama local falhou: ${response.status} ${response.statusText}${detail ? ` – ${detail}` : ""}`);
+  }
+
+  const result = await response.json() as {
+    model?: string;
+    created_at?: string;
+    message?: { role?: Role; content?: string };
+    done?: boolean;
+    total_duration?: number;
+    prompt_eval_count?: number;
+    eval_count?: number;
+  };
+  const content = result.message?.content;
+  if (typeof content !== "string") throw new Error("Ollama local não retornou conteúdo de texto");
+
+  return {
+    id: `ollama-${Date.now()}`,
+    created: result.created_at ? Math.floor(Date.parse(result.created_at) / 1000) : Math.floor(Date.now() / 1000),
+    model: result.model || model,
+    choices: [{ index: 0, message: { role: "assistant", content }, finish_reason: "stop" }],
+    usage: result.prompt_eval_count !== undefined || result.eval_count !== undefined
+      ? {
+          prompt_tokens: result.prompt_eval_count || 0,
+          completion_tokens: result.eval_count || 0,
+          total_tokens: (result.prompt_eval_count || 0) + (result.eval_count || 0),
+        }
+      : undefined,
+  };
+};
+
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertProviderConfigured();
 
@@ -430,6 +513,26 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   const resolvedMaxTokens = max_tokens ?? maxTokens;
   if (typeof resolvedMaxTokens === "number") {
     payload.max_tokens = resolvedMaxTokens;
+  }
+
+  const provider = resolveProvider();
+  const localModel = model || resolveDefaultModel();
+  const canUseNativeOllama = provider === "local"
+    && ENV.localLlmNative
+    && Boolean(localModel)
+    && (!tools || tools.length === 0)
+    && !responseFormat
+    && !response_format
+    && !outputSchema
+    && !output_schema;
+  if (canUseNativeOllama) {
+    return invokeOllamaNative({
+      messages,
+      model: localModel,
+      maxTokens: resolvedMaxTokens,
+      thinking,
+      reasoning,
+    });
   }
 
   if (thinking) {
