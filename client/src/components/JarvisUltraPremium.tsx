@@ -1,8 +1,28 @@
-import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Send, Zap, Brain, Shield, Sparkles, User, Bot, Terminal, Activity, Cpu, Globe, Search, ArrowRight, Mic, Volume2 } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Activity,
+  Bot,
+  ChevronDown,
+  Cpu,
+  FileSearch,
+  Image as ImageIcon,
+  Mic,
+  MoreHorizontal,
+  PanelLeft,
+  Search,
+  Send,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  Square,
+  User,
+  Volume2,
+  VolumeX,
+  X,
+  Zap,
+} from "lucide-react";
 import { trpc } from "../lib/trpc";
-import { JarvisHUD } from "./JarvisHUD";
 
 interface Message {
   id: string;
@@ -15,31 +35,51 @@ interface Message {
   imageUrl?: string;
 }
 
-interface AgencyStep {
-  step: number;
-  action: string;
-  status: "pending" | "executing" | "completed";
+type PersonaMode = "strategic" | "companion";
+type SystemStatus = "nominal" | "processing" | "alert";
+
+function normalizeWakeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function JarvisUltraPremium() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [agencySteps, setAgencySteps] = useState<AgencyStep[]>([]);
-  const [deepThinkingEnabled, setDeepThinkingEnabled] = useState(false);
-  const [personaMode, setPersonaMode] = useState<"strategic" | "companion">(() => {
+  const [personaMode, setPersonaMode] = useState<PersonaMode>(() => {
     try {
-      return (localStorage.getItem("auren-persona-mode") as "strategic" | "companion") || "strategic";
+      return (localStorage.getItem("auren-persona-mode") as PersonaMode) || "strategic";
     } catch {
       return "strategic";
     }
   });
-  const [conversationId, setConversationId] = useState<number | undefined>(undefined);
-  const [systemStatus, setSystemStatus] = useState<"nominal" | "processing" | "alert">("nominal");
+  const [conversationId, setConversationId] = useState<number | undefined>();
+  const [systemStatus, setSystemStatus] = useState<SystemStatus>("nominal");
   const [isListening, setIsListening] = useState(false);
   const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(false);
   const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState("");
+  const [deepThinkingEnabled, setDeepThinkingEnabled] = useState(false);
+  const [showTools, setShowTools] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicrophone, setSelectedMicrophone] = useState(() => {
+    try {
+      return localStorage.getItem("auren-microphone-id") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const recognitionRef = useRef<any>(null);
   const wakeRecognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -50,26 +90,41 @@ export function JarvisUltraPremium() {
   const bridgeStatusQuery = trpc.local.bridgeStatus.useQuery(undefined, { enabled: false });
   const cleanupPreviewQuery = trpc.local.cleanupPreview.useQuery(undefined, { enabled: false });
 
+  const statusLabel = useMemo(() => {
+    if (isLoading || systemStatus === "processing") return "Processando";
+    if (systemStatus === "alert") return "Atenção necessária";
+    if (wakeWordEnabled) return "Aguardando Auren";
+    return "Pronto";
+  }, [isLoading, systemStatus, wakeWordEnabled]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, agencySteps]);
+  }, [messages, isLoading]);
 
   useEffect(() => {
     try {
       localStorage.setItem("auren-persona-mode", personaMode);
     } catch {
-      // localStorage pode estar indisponível em modo privado.
+      // O navegador pode bloquear localStorage em modo privado.
     }
   }, [personaMode]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem("auren-microphone-id", selectedMicrophone);
+    } catch {
+      // Preferência opcional.
+    }
+  }, [selectedMicrophone]);
+
+  useEffect(() => {
     if (!voiceOutputEnabled) return;
     const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || lastMessage.role !== "assistant") return;
+    if (!lastMessage || lastMessage.role !== "assistant" || typeof window === "undefined" || !window.speechSynthesis) return;
 
     const utterance = new SpeechSynthesisUtterance(lastMessage.content);
     utterance.lang = "pt-BR";
@@ -80,27 +135,57 @@ export function JarvisUltraPremium() {
     return () => window.speechSynthesis.cancel();
   }, [messages, voiceOutputEnabled]);
 
+  const refreshMicrophones = async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) {
+      setVoiceNotice("Este navegador não permite listar microfones.");
+      return;
+    }
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(device => device.kind === "audioinput");
+      setMicrophones(audioInputs);
+      if (!selectedMicrophone && audioInputs[0]?.deviceId) {
+        setSelectedMicrophone(audioInputs[0].deviceId);
+      }
+      if (audioInputs.length === 0) setVoiceNotice("Nenhum microfone foi encontrado.");
+    } catch {
+      setVoiceNotice("Não foi possível listar os microfones.");
+    }
+  };
+
+  const requestMicrophone = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setVoiceNotice("Este navegador não oferece acesso ao microfone.");
+      return false;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: selectedMicrophone ? { deviceId: { exact: selectedMicrophone } } : true,
+      });
+      stream.getTracks().forEach(track => track.stop());
+      await refreshMicrophones();
+      return true;
+    } catch {
+      setVoiceNotice("Permissão de microfone negada ou dispositivo indisponível.");
+      return false;
+    }
+  };
+
   const handleSendMessage = async (contentOverride?: string) => {
     const userContent = (contentOverride ?? input).trim();
     if (!userContent || isLoading) return;
-    const userMessage: Message = {
+
+    const startedAt = performance.now();
+    setMessages(prev => [...prev, {
       id: `msg_${Date.now()}`,
       role: "user",
       content: userContent,
       timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    }]);
     setInput("");
     setIsLoading(true);
     setSystemStatus("processing");
-
-    // Simular passos de agência com foco em Pesquisa e Conectividade
-    setAgencySteps([
-      { step: 1, action: "INICIALIZANDO PROTOCOLO NET-SYNC...", status: "executing" },
-      { step: 2, action: "VARRENDO FONTES GLOBAIS (SEARCH_MODE)...", status: "pending" },
-      { step: 3, action: "SINTETIZANDO CONHECIMENTO STARK...", status: "pending" },
-    ]);
+    setVoiceNotice("");
 
     try {
       if (userContent.toLowerCase().startsWith("/imagem ")) {
@@ -109,56 +194,45 @@ export function JarvisUltraPremium() {
           style: "cinematográfico, detalhado, original",
           conversationId,
         });
-        setAgencySteps((prev) => prev.map(s => ({ ...s, status: "completed" })));
-        setMessages((prev) => [...prev, {
+        setMessages(prev => [...prev, {
           id: `msg_${Date.now() + 1}`,
           role: "assistant",
           content: result.message,
           imageUrl: result.imageUrl,
           timestamp: new Date(),
         }]);
-        setSystemStatus("nominal");
-        return;
+      } else {
+        const response = await sendMessageMutation.mutateAsync({
+          content: userContent,
+          conversationId,
+          deepThinking: deepThinkingEnabled,
+          mode: personaMode,
+        });
+        if (response.conversationId) setConversationId(response.conversationId);
+        setMessages(prev => [...prev, {
+          id: `msg_${Date.now() + 1}`,
+          role: "assistant",
+          content: response.content,
+          timestamp: new Date(),
+          confidence: response.confidenceScore,
+          deepThinking: response.deepThinkingPerformed,
+          sources: (response as any).sources || [],
+        }]);
       }
-
-      const response = await sendMessageMutation.mutateAsync({
-        content: userContent,
-        conversationId: conversationId,
-        deepThinking: deepThinkingEnabled,
-        mode: personaMode,
-      });
-
-      setAgencySteps((prev) => prev.map(s => ({ ...s, status: "completed" })));
-
-      const assistantMessage: Message = {
-        id: `msg_${Date.now() + 1}`,
-        role: "assistant",
-        content: response.content,
-        timestamp: new Date(),
-        confidence: response.confidenceScore,
-        deepThinking: response.deepThinkingPerformed,
-        sources: (response as any).sources || []
-      };
-
-      if (response.conversationId) {
-        setConversationId(response.conversationId);
-      }
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      setLastLatencyMs(Math.round(performance.now() - startedAt));
       setSystemStatus("nominal");
     } catch (error) {
-      console.error("Erro JARVIS:", error);
-      setSystemStatus("alert");
-      const errorMessage: Message = {
+      console.error("Erro no Auren:", error);
+      const detail = error instanceof Error ? error.message : "falha desconhecida";
+      setMessages(prev => [...prev, {
         id: `msg_err_${Date.now()}`,
         role: "assistant",
-        content: "Senhor, detectei uma falha na conexão com o núcleo central. O Protocolo Guardian sugere uma reinicialização de rede.",
+        content: `Não consegui concluir esta solicitação. ${detail}`,
         timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      }]);
+      setSystemStatus("alert");
     } finally {
       setIsLoading(false);
-      setTimeout(() => setAgencySteps([]), 1500);
     }
   };
 
@@ -171,7 +245,7 @@ export function JarvisUltraPremium() {
 
     const Recognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!Recognition) {
-      setVoiceNotice("Ativação por palavra não está disponível neste navegador.");
+      setVoiceNotice("Ativação por palavra não está disponível neste navegador. Use o botão Falar.");
       setWakeWordEnabled(false);
       return;
     }
@@ -180,40 +254,54 @@ export function JarvisUltraPremium() {
     recognition.lang = "pt-BR";
     recognition.continuous = true;
     recognition.interimResults = false;
-    recognition.onstart = () => setVoiceNotice("Auren está em espera pela palavra de ativação.");
+    recognition.onstart = () => setVoiceNotice("Auren está em espera. Diga “Auren” e depois o comando.");
     recognition.onresult = (event: any) => {
       const transcript = Array.from(event.results || [])
         .slice(event.resultIndex || 0)
         .map((result: any) => result?.[0]?.transcript || "")
         .join(" ")
         .trim();
-      const normalized = transcript.toLowerCase();
-      const wakeIndex = normalized.indexOf("auren");
-      if (wakeIndex < 0) return;
+      const normalized = normalizeWakeText(transcript);
+      const wakeAliases = ["auren", "aurem"];
+      const wakeAlias = wakeAliases.find(alias => normalized.includes(alias));
+      if (!wakeAlias) return;
 
-      const command = transcript.slice(wakeIndex + "auren".length).trim();
+      const command = transcript.slice(normalized.indexOf(wakeAlias) + wakeAlias.length).trim();
       if (!command) {
-        setVoiceNotice("Palavra de ativação reconhecida. Auren está pronto.");
+        setVoiceNotice("Palavra reconhecida. Agora diga o que você precisa.");
         return;
       }
-      setVoiceNotice(`Comando Auren: ${command}`);
+      setVoiceNotice(`Comando recebido: ${command}`);
       void handleSendMessage(command);
     };
-    recognition.onerror = () => setVoiceNotice("A escuta por palavra foi interrompida pelo navegador.");
+    recognition.onerror = (event: any) => {
+      if (event?.error === "not-allowed" || event?.error === "service-not-allowed") {
+        setVoiceNotice("O navegador bloqueou o microfone. Autorize o microfone do endereço local.");
+        setWakeWordEnabled(false);
+      } else {
+        setVoiceNotice("A escuta foi interrompida pelo navegador; tente ativar novamente.");
+      }
+    };
     recognition.onend = () => {
       if (wakeWordEnabled) {
         window.setTimeout(() => {
           try { recognition.start(); } catch { /* já iniciado ou encerrado */ }
-        }, 400);
+        }, 700);
       }
     };
     wakeRecognitionRef.current = recognition;
-    try {
-      recognition.start();
-    } catch {
-      setVoiceNotice("Não foi possível iniciar a escuta por palavra.");
-      setWakeWordEnabled(false);
-    }
+    void requestMicrophone().then(allowed => {
+      if (!allowed) {
+        setWakeWordEnabled(false);
+        return;
+      }
+      try {
+        recognition.start();
+      } catch {
+        setVoiceNotice("Não foi possível iniciar a escuta por palavra.");
+        setWakeWordEnabled(false);
+      }
+    });
 
     return () => {
       recognition.onend = null;
@@ -222,12 +310,15 @@ export function JarvisUltraPremium() {
     };
   }, [wakeWordEnabled]);
 
-  const toggleVoiceListening = () => {
+  const toggleVoiceListening = async () => {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
       return;
     }
+
+    const allowed = await requestMicrophone();
+    if (!allowed) return;
 
     const Recognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!Recognition) {
@@ -256,289 +347,252 @@ export function JarvisUltraPremium() {
     };
     recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
-    recognition.start();
+    try {
+      recognition.start();
+    } catch {
+      setVoiceNotice("Não foi possível iniciar o reconhecimento de voz.");
+    }
   };
 
+  const quickPrompts = ["O que você consegue fazer?", "Faça um diagnóstico do PC", "Explique o modo Companheiro"];
+
   return (
-    <div className="relative w-full h-screen bg-black text-blue-100 font-mono overflow-hidden">
-      {/* JARVIS HUD - Camada Superior de UI */}
-      <JarvisHUD 
-        status={systemStatus} 
-        workload={isLoading ? 85 : 12} 
-        activeObjectives={3} 
-      />
-
-      {/* Background HUD Grid & Scanline */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute inset-0" style={{ 
-          backgroundImage: 'linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px)', 
-          backgroundSize: '40px 40px' 
-        }}></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent animate-[scanline_8s_linear_infinite]"></div>
-      </div>
-
-      {/* Main Container */}
-      <div className="relative z-10 flex flex-col h-full max-w-5xl mx-auto border-x border-blue-500/10">
-        
-        {/* Header HUD - Minimalista e Funcional */}
-        <motion.header 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="px-8 py-6 flex items-center justify-between bg-black/40 backdrop-blur-sm border-b border-blue-500/10"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
-            <h1 className="text-lg font-black tracking-[0.3em] text-blue-400">AUREN <span className="text-[9px] text-blue-500/50 tracking-widest">PERSONAL CORE</span></h1>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4 text-[9px] text-blue-500/40">
-              <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> WEB_SYNC: ON</span>
-              <span className="flex items-center gap-1"><Brain className="w-3 h-3" /> NEURAL: STABLE</span>
-            </div>
-            <div className="flex items-center gap-1 border border-blue-900/60 rounded p-1">
-              <button
-                type="button"
-                onClick={() => setPersonaMode("strategic")}
-                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                  personaMode === "strategic" ? "bg-blue-500/20 text-blue-300" : "text-blue-900"
-                }`}
-              >
-                ESTRATEGICO
-              </button>
-              <button
-                type="button"
-                onClick={() => setPersonaMode("companion")}
-                className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                  personaMode === "companion" ? "bg-cyan-500/20 text-cyan-300" : "text-blue-900"
-                }`}
-              >
-                COMPANHEIRO
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={toggleVoiceListening}
-              className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${isListening ? "border-rose-400 text-rose-300 bg-rose-400/10" : "border-blue-900 text-blue-400"}`}
-              title="Reconhecimento de voz por comando"
+    <div className="min-h-screen bg-[#071014] text-slate-100 selection:bg-cyan-400/30">
+      <div className="mx-auto flex min-h-screen max-w-[1440px]">
+        <AnimatePresence initial={false}>
+          {showSidebar && (
+            <motion.aside
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 280, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              className="hidden shrink-0 overflow-hidden border-r border-white/8 bg-[#0a151a] lg:block"
             >
-              <Mic className="inline-block w-3 h-3 mr-1" />{isListening ? "OUVINDO" : "FALAR"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void cleanupPreviewQuery.refetch()}
-              className="px-2 py-1.5 border border-blue-900 rounded text-[9px] font-bold text-blue-400 transition-all"
-              title="Prévia somente leitura dos temporários"
-            >
-              LIMPEZA PREVIEW
-            </button>
-            <button
-              type="button"
-              onClick={() => void bridgeStatusQuery.refetch()}
-              className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${bridgeStatusQuery.data?.armed ? "border-amber-400 text-amber-300" : "border-blue-900 text-blue-400"}`}
-              title="Verificar a ponte Windows local"
-            >
-              <Shield className="inline-block w-3 h-3 mr-1" />PONTE {bridgeStatusQuery.data ? (bridgeStatusQuery.data.armed ? "ARMADA" : "DESARMADA") : "?"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void systemSnapshotQuery.refetch()}
-              className="px-2 py-1.5 border border-blue-900 rounded text-[9px] font-bold text-blue-400 transition-all"
-              title="Diagnóstico somente leitura do computador"
-            >
-              <Cpu className="inline-block w-3 h-3 mr-1" />DIAGNÓSTICO
-            </button>
-            <button
-              type="button"
-              onClick={() => setWakeWordEnabled(value => !value)}
-              className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${wakeWordEnabled ? "border-amber-400 text-amber-300 bg-amber-400/10" : "border-blue-900 text-blue-400"}`}
-              title="Escuta experimental com palavra de ativação Auren"
-            >
-              AUREN {wakeWordEnabled ? "ON" : "OFF"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setVoiceOutputEnabled(value => !value)}
-              className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${voiceOutputEnabled ? "border-cyan-400 text-cyan-300 bg-cyan-400/10" : "border-blue-900 text-blue-400"}`}
-              title="Resposta falada em português brasileiro"
-            >
-              <Volume2 className="inline-block w-3 h-3 mr-1" />{voiceOutputEnabled ? "VOZ ON" : "VOZ OFF"}
-            </button>
-            <motion.button
-              whileHover={{ scale: 1.05, borderColor: "rgba(59, 130, 246, 0.5)" }}
-              onClick={() => setDeepThinkingEnabled(!deepThinkingEnabled)}
-              className={`px-3 py-1.5 border rounded text-[10px] font-bold transition-all ${
-                deepThinkingEnabled ? "border-blue-400 text-blue-400 bg-blue-400/5" : "border-blue-900 text-blue-900"
-              }`}
-            >
-              {deepThinkingEnabled ? "DEEP_THINK: ON" : "FAST_MODE: ON"}
-            </motion.button>
-          </div>
-        </motion.header>
-
-        {/* Chat Area - Imersiva */}
-        <main className="flex-1 overflow-y-auto px-8 py-10 space-y-10 scrollbar-hide">
-          <AnimatePresence>
-            {messages.length === 0 && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="h-full flex flex-col items-center justify-center"
-              >
-                <div className="relative mb-8">
-                  <Search className="w-16 h-16 text-blue-500/20" />
-                  <motion.div 
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ repeat: Infinity, duration: 4 }}
-                    className="absolute inset-0 border-2 border-blue-500/10 rounded-full scale-150"
-                  ></motion.div>
+              <div className="flex h-full min-h-screen w-[280px] flex-col p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-400 text-[#061014] shadow-[0_0_28px_rgba(34,211,238,0.24)]">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300">Auren</p>
+                    <p className="mt-1 text-xs text-slate-500">assistente local</p>
+                  </div>
                 </div>
-                <p className="text-[11px] tracking-[0.5em] uppercase text-blue-500/40 text-center">
-                  SISTEMA PRONTO PARA PESQUISA E EXECUÇÃO
-                </p>
-              </motion.div>
-            )}
 
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex gap-6 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
-              >
-                <div className={`w-8 h-8 rounded border flex items-center justify-center shrink-0 ${
-                  msg.role === "user" ? "border-blue-500/40 bg-blue-500/5" : "border-cyan-500/40 bg-cyan-500/5"
-                }`}>
-                  {msg.role === "user" ? <User className="w-4 h-4 text-blue-400" /> : <Bot className="w-4 h-4 text-cyan-400" />}
+                <div className="mt-8 rounded-2xl border border-emerald-400/15 bg-emerald-400/6 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-xs font-medium text-emerald-200">
+                      <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.9)]" />
+                      {statusLabel}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-emerald-300/50">local</span>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-slate-400">Ollama local · sem custo por mensagem</p>
+                  {lastLatencyMs !== null && <p className="mt-2 text-[11px] text-slate-500">Última resposta: {(lastLatencyMs / 1000).toFixed(1)}s</p>}
                 </div>
-                
-                <div className={`flex flex-col max-w-[85%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                  <div className={`p-6 border bg-black/40 backdrop-blur-xl ${
-                    msg.role === "user" 
-                      ? "border-blue-500/20 rounded-tr-none text-blue-100" 
-                      : "border-cyan-500/20 rounded-tl-none text-cyan-50"
-                  }`}>
-                    <p className="leading-relaxed text-sm whitespace-pre-wrap">{msg.content}</p>
-                    {msg.imageUrl && (
-                      <img src={msg.imageUrl} alt="Imagem gerada por Auren" className="mt-4 max-h-96 max-w-full rounded border border-cyan-400/20" />
-                    )}
-                    
-                    {msg.sources && msg.sources.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
-                        <p className="text-[9px] text-blue-500/50 uppercase tracking-widest">Fontes Verificadas:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {msg.sources.map((source, i) => (
-                            <a key={i} href={source} target="_blank" rel="noreferrer" className="text-[10px] text-blue-400 hover:underline flex items-center gap-1">
-                              <Globe className="w-3 h-3" /> FONT_{i+1}
-                            </a>
-                          ))}
+
+                <div className="mt-6">
+                  <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-600">Personalidade</p>
+                  <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl bg-[#111f25] p-1">
+                    <button
+                      type="button"
+                      onClick={() => setPersonaMode("strategic")}
+                      className={`rounded-lg px-2 py-2 text-xs transition ${personaMode === "strategic" ? "bg-cyan-300 text-[#071014]" : "text-slate-400 hover:text-white"}`}
+                    >
+                      Estratégico
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPersonaMode("companion")}
+                      className={`rounded-lg px-2 py-2 text-xs transition ${personaMode === "companion" ? "bg-cyan-300 text-[#071014]" : "text-slate-400 hover:text-white"}`}
+                    >
+                      Companheiro
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-7 space-y-2">
+                  <button type="button" onClick={() => void systemSnapshotQuery.refetch()} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">
+                    <Cpu className="h-4 w-4 text-cyan-300" /> Diagnóstico do PC
+                  </button>
+                  <button type="button" onClick={() => void cleanupPreviewQuery.refetch()} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">
+                    <FileSearch className="h-4 w-4 text-amber-300" /> Prévia de limpeza
+                  </button>
+                  <button type="button" onClick={() => void bridgeStatusQuery.refetch()} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">
+                    <ShieldCheck className="h-4 w-4 text-emerald-300" /> Status da ponte
+                  </button>
+                </div>
+
+                <div className="mt-auto rounded-2xl border border-white/8 bg-white/[0.025] p-4">
+                  <p className="text-xs font-medium text-slate-300">Privacidade local</p>
+                  <p className="mt-2 text-[11px] leading-5 text-slate-500">Memória e conversas ficam no computador. O microfone começa desligado.</p>
+                  <button type="button" onClick={() => setShowSettings(true)} className="mt-3 flex items-center gap-2 text-xs text-cyan-300 hover:text-cyan-200">
+                    <Settings2 className="h-3.5 w-3.5" /> Configurar dispositivos
+                  </button>
+                </div>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        <section className="flex min-w-0 flex-1 flex-col">
+          <header className="flex h-[76px] items-center justify-between border-b border-white/8 bg-[#071014]/90 px-5 backdrop-blur-xl sm:px-8">
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setShowSidebar(value => !value)} className="rounded-lg p-2 text-slate-500 transition hover:bg-white/5 hover:text-white" title="Mostrar ou ocultar painel">
+                <PanelLeft className="h-5 w-5" />
+              </button>
+              <div>
+                <h1 className="text-base font-semibold tracking-tight text-white">Conversa com Auren</h1>
+                <p className="mt-0.5 text-xs text-slate-500">{personaMode === "strategic" ? "Modo Estratégico" : "Modo Companheiro"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/5 px-3 py-2 text-[11px] text-emerald-200 sm:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> IA local
+              </div>
+              <button type="button" onClick={() => setShowSettings(true)} className="rounded-xl border border-white/8 p-2.5 text-slate-400 transition hover:bg-white/5 hover:text-white" title="Configurações">
+                <Settings2 className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => setShowTools(value => !value)} className="rounded-xl border border-white/8 p-2.5 text-slate-400 transition hover:bg-white/5 hover:text-white" title="Ferramentas">
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </div>
+          </header>
+
+          {showTools && (
+            <div className="border-b border-white/8 bg-[#0a171c] px-5 py-3 sm:px-8">
+              <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-2">
+                <button type="button" onClick={() => void systemSnapshotQuery.refetch()} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5">Diagnóstico</button>
+                <button type="button" onClick={() => void cleanupPreviewQuery.refetch()} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5">Limpeza preview</button>
+                <button type="button" onClick={() => void bridgeStatusQuery.refetch()} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5">Ponte Windows</button>
+                <button type="button" onClick={() => setDeepThinkingEnabled(value => !value)} className={`rounded-lg border px-3 py-2 text-xs ${deepThinkingEnabled ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-200" : "border-white/10 text-slate-300"}`}>{deepThinkingEnabled ? "Reflexão: ligada" : "Resposta rápida"}</button>
+              </div>
+            </div>
+          )}
+
+          <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-8">
+            <div className="mx-auto w-full max-w-4xl">
+              {messages.length === 0 ? (
+                <div className="flex min-h-[calc(100vh-260px)] flex-col justify-center">
+                  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+                    <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-300/20">
+                      <Sparkles className="h-7 w-7" />
+                    </div>
+                    <p className="text-sm font-medium text-cyan-200">Olá, Feripe.</p>
+                    <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">Como posso ajudar você hoje?</h2>
+                    <p className="mt-4 max-w-xl text-sm leading-6 text-slate-400">Sou o Auren. Posso conversar, organizar ideias, diagnosticar o computador e ajudar com segurança usando a IA local.</p>
+                    <div className="mt-8 flex flex-wrap gap-2">
+                      {quickPrompts.map(prompt => (
+                        <button key={prompt} type="button" onClick={() => void handleSendMessage(prompt)} className="rounded-full border border-white/10 bg-white/[0.025] px-4 py-2.5 text-xs text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-300/5 hover:text-white">
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                </div>
+              ) : (
+                <div className="space-y-8 pb-8">
+                  {messages.map(message => (
+                    <motion.article key={message.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      {message.role === "assistant" && (
+                        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-300/15"><Bot className="h-4 w-4" /></div>
+                      )}
+                      <div className={`max-w-[min(720px,88%)] ${message.role === "user" ? "items-end" : "items-start"}`}>
+                        <div className={`rounded-2xl px-4 py-3.5 text-sm leading-6 ${message.role === "user" ? "rounded-br-md bg-cyan-300 text-[#071014]" : "rounded-bl-md border border-white/8 bg-[#101d23] text-slate-200"}`}>
+                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          {message.imageUrl && <img src={message.imageUrl} alt="Imagem gerada por Auren" className="mt-4 max-h-[440px] max-w-full rounded-xl border border-white/10 object-contain" />}
+                          {message.sources && message.sources.length > 0 && (
+                            <div className="mt-4 border-t border-white/10 pt-3 text-xs text-slate-400">
+                              <p className="mb-2 font-medium text-slate-300">Fontes</p>
+                              <div className="flex flex-wrap gap-2">{message.sources.map((source, index) => <a key={source} href={source} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">Fonte {index + 1}</a>)}</div>
+                            </div>
+                          )}
+                        </div>
+                        <div className={`mt-1.5 flex items-center gap-2 text-[10px] text-slate-600 ${message.role === "user" ? "justify-end" : ""}`}>
+                          <span>{message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                          {message.deepThinking && <span className="text-cyan-300/60">reflexão</span>}
                         </div>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-2 flex items-center gap-4 text-[8px] uppercase tracking-widest text-blue-500/30">
-                    <span>{msg.timestamp.toLocaleTimeString()}</span>
-                    {msg.confidence && <span>CONFIDÊNCIA: {msg.confidence}%</span>}
-                    {msg.deepThinking && <span className="text-blue-400 animate-pulse">REFLEXÃO_ATIVA</span>}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-
-            {/* Agência Autônoma HUD Element */}
-            {agencySteps.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="ml-14 p-6 border-l-2 border-blue-500/20 bg-blue-500/5 space-y-4"
-              >
-                <div className="flex items-center gap-3">
-                  <Activity className="w-3 h-3 text-blue-400 animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-blue-300">Execução em Tempo Real</span>
-                </div>
-                <div className="space-y-3">
-                  {agencySteps.map((step) => (
-                    <div key={step.step} className="flex items-center gap-3">
-                      <div className={`w-1.5 h-1.5 rounded-full ${
-                        step.status === "completed" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" :
-                        step.status === "executing" ? "bg-blue-400 animate-ping" : "bg-white/10"
-                      }`}></div>
-                      <span className={`text-[9px] tracking-widest ${step.status === "completed" ? "text-green-400/70" : step.status === "executing" ? "text-blue-300" : "text-white/20"}`}>
-                        {step.action}
-                      </span>
-                    </div>
+                      {message.role === "user" && <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/8 text-slate-300"><User className="h-4 w-4" /></div>}
+                    </motion.article>
                   ))}
+                  {isLoading && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 text-sm text-slate-500">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-300/10 text-cyan-200"><Bot className="h-4 w-4" /></div>
+                      <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-white/8 bg-[#101d23] px-4 py-3.5"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300 [animation-delay:120ms]" /><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300 [animation-delay:240ms]" /></div>
+                    </motion.div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <div ref={messagesEndRef} />
-        </main>
+              )}
 
-        {/* Input Terminal - Design Industrial Stark */}
-        <footer className="px-8 py-8 border-t border-blue-500/10 bg-black/60">
-          {voiceNotice && (
-            <div className="mb-3 text-[9px] uppercase tracking-widest text-cyan-400/70">
-              {voiceNotice}
-            </div>
-          )}
-          {cleanupPreviewQuery.data && (
-            <div className="mb-3 p-3 border border-amber-500/10 text-[9px] uppercase tracking-widest text-amber-300/70">
-              PRÉVIA: {cleanupPreviewQuery.data.targets.map(target => `${target.label}: ${target.files} arquivos`).join(" · ")} · nenhuma exclusão executada
-            </div>
-          )}
-          {bridgeStatusQuery.error && (
-            <div className="mb-3 p-3 border border-amber-500/10 text-[9px] uppercase tracking-widest text-amber-300/70">
-              PONTE: {bridgeStatusQuery.error.message}
-            </div>
-          )}
-          {bridgeStatusQuery.data && (
-            <div className="mb-3 p-3 border border-cyan-500/10 text-[9px] uppercase tracking-widest text-cyan-300/70">
-              PONTE WINDOWS: {bridgeStatusQuery.data.armed ? "ARMADA" : "DESARMADA"} · RAIZ: {bridgeStatusQuery.data.root}
-            </div>
-          )}
-          {systemSnapshotQuery.data && (
-            <div className="mb-3 p-3 border border-blue-500/10 text-[9px] uppercase tracking-widest text-blue-300/70">
-              CPU: {systemSnapshotQuery.data.cpuModel} · NÚCLEOS: {systemSnapshotQuery.data.logicalCores} · RAM: {systemSnapshotQuery.data.memory.usedPercent}% · UPTIME: {Math.round(systemSnapshotQuery.data.uptimeSeconds / 3600)}H
-            </div>
-          )}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl blur opacity-30 group-focus-within:opacity-100 transition duration-1000"></div>
-            <div className="relative flex items-center bg-black border border-blue-500/20 rounded-xl overflow-hidden">
-              <div className="pl-6 text-blue-500/40">
-                <Terminal className="w-4 h-4" />
+              <div className="space-y-3">
+                {voiceNotice && <div className="flex items-center gap-2 rounded-xl border border-cyan-300/15 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-200"><Activity className="h-3.5 w-3.5" /> {voiceNotice}</div>}
+                {cleanupPreviewQuery.data && <div className="rounded-xl border border-amber-300/15 bg-amber-300/5 px-3 py-3 text-xs text-amber-100">Prévia: {cleanupPreviewQuery.data.targets.map(target => `${target.label}: ${target.files} arquivos (${formatBytes(target.bytes)})`).join(" · ")} · nada foi apagado.</div>}
+                {bridgeStatusQuery.error && <div className="rounded-xl border border-rose-300/15 bg-rose-300/5 px-3 py-3 text-xs text-rose-200">Ponte: {bridgeStatusQuery.error.message}</div>}
+                {bridgeStatusQuery.data && <div className="rounded-xl border border-emerald-300/15 bg-emerald-300/5 px-3 py-3 text-xs text-emerald-100">Ponte Windows: {bridgeStatusQuery.data.armed ? "armada" : "desarmada"} · raiz {bridgeStatusQuery.data.root}</div>}
+                {systemSnapshotQuery.data && <div className="rounded-xl border border-white/8 bg-white/[0.025] px-3 py-3 text-xs text-slate-300">{systemSnapshotQuery.data.cpuModel} · {systemSnapshotQuery.data.logicalCores} núcleos · memória em {systemSnapshotQuery.data.memory.usedPercent}% · uptime {Math.round(systemSnapshotQuery.data.uptimeSeconds / 3600)}h</div>}
               </div>
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder="Digite uma pergunta ou /imagem sua descrição..."
-                className="w-full bg-transparent py-5 px-4 text-blue-100 placeholder-blue-900/50 focus:outline-none text-xs tracking-widest"
-              />
-              <motion.button
-                whileHover={{ backgroundColor: "rgba(59, 130, 246, 0.1)" }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => void handleSendMessage()}
-                disabled={isLoading || !input.trim()}
-                className="pr-6 pl-4 py-5 flex items-center gap-3 text-blue-400 disabled:text-blue-900 transition-colors group/btn"
-              >
-                <span className="text-[10px] font-black tracking-widest group-hover/btn:mr-1 transition-all">EXECUTAR</span>
-                <ArrowRight className="w-4 h-4" />
-              </motion.button>
             </div>
-          </div>
-          
-          <div className="mt-4 flex justify-between items-center text-[7px] text-blue-900 uppercase tracking-widest">
-            <span>STARK_INDUSTRIES // NEURAL_LINK_ESTABLISHED</span>
-            <div className="flex gap-6">
-              <span>LATÊNCIA: 12ms</span>
-              <span>CRIPTOGRAFIA: AES_256_ACTIVE</span>
+          </main>
+
+          <footer className="border-t border-white/8 bg-[#071014]/95 px-4 py-4 backdrop-blur-xl sm:px-8 sm:py-5">
+            <div className="mx-auto max-w-4xl">
+              <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-[#0d1a20] p-2 shadow-[0_12px_40px_rgba(0,0,0,0.18)] focus-within:border-cyan-300/35">
+                <textarea
+                  value={input}
+                  onChange={event => setInput(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      void handleSendMessage();
+                    }
+                  }}
+                  rows={1}
+                  placeholder="Fale com Auren... use /imagem para criar uma imagem"
+                  className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-600"
+                />
+                <button type="button" onClick={() => void toggleVoiceListening()} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition ${isListening ? "bg-rose-300 text-[#071014]" : "text-slate-400 hover:bg-white/8 hover:text-white"}`} title={isListening ? "Parar de ouvir" : "Falar com Auren"}>
+                  {isListening ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-5 w-5" />}
+                </button>
+                <button type="button" onClick={() => void handleSendMessage()} disabled={isLoading || !input.trim()} className="flex h-11 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-sm font-semibold text-[#071014] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-35" title="Enviar">
+                  <span className="hidden sm:inline">Enviar</span><Send className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => setWakeWordEnabled(value => !value)} className={`flex items-center gap-1.5 transition ${wakeWordEnabled ? "text-cyan-200" : "hover:text-slate-300"}`}><Zap className="h-3.5 w-3.5" /> Auren {wakeWordEnabled ? "ligado" : "desligado"}</button>
+                  <button type="button" onClick={() => setVoiceOutputEnabled(value => !value)} className={`flex items-center gap-1.5 transition ${voiceOutputEnabled ? "text-cyan-200" : "hover:text-slate-300"}`}>{voiceOutputEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />} Voz {voiceOutputEnabled ? "ligada" : "desligada"}</button>
+                </div>
+                <span>Enter envia · Shift+Enter quebra linha · dados locais</span>
+              </div>
             </div>
-          </div>
-        </footer>
+          </footer>
+        </section>
       </div>
+
+      {showSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0b171c] p-6 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">Configurar dispositivos</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">O navegador precisa de permissão para ouvir. A escuta contínua ainda é experimental.</p>
+              </div>
+              <button type="button" onClick={() => setShowSettings(false)} className="rounded-lg p-2 text-slate-500 hover:bg-white/5 hover:text-white"><X className="h-4 w-4" /></button>
+            </div>
+            <label className="mt-6 block text-xs font-medium text-slate-300" htmlFor="microphone-select">Microfone preferido</label>
+            <div className="relative mt-2">
+              <select id="microphone-select" value={selectedMicrophone} onChange={event => setSelectedMicrophone(event.target.value)} className="w-full appearance-none rounded-xl border border-white/10 bg-[#101f25] px-3 py-3 pr-10 text-sm text-slate-200 outline-none focus:border-cyan-300/40">
+                <option value="">Microfone padrão do navegador</option>
+                {microphones.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Microfone ${index + 1}`}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-3.5 h-4 w-4 text-slate-500" />
+            </div>
+            <button type="button" onClick={() => void requestMicrophone()} className="mt-3 w-full rounded-xl border border-white/10 px-3 py-3 text-sm text-slate-300 hover:bg-white/5">Permitir e atualizar microfones</button>
+            <div className="mt-5 rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4 text-xs leading-5 text-amber-100/80">A lista e a preferência ficam no navegador. O reconhecimento Web Speech pode continuar usando o microfone padrão do Chrome; a seleção real por dispositivo será concluída no companion nativo do Windows.</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

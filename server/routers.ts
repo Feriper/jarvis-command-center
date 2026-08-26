@@ -95,7 +95,11 @@ export const appRouter = router({
         }
 
         // Chamar LLM para resposta
-        const response = await invokeLLM({ messages });
+        const response = await invokeLLM({
+          messages,
+          // Respostas curtas reduzem a latência no modelo local de 3B.
+          maxTokens: input.deepThinking ? 420 : 220,
+        });
         const aiContent = response.choices[0]?.message?.content || "Desculpe, senhor. Tive um erro no processamento.";
 
         // Salvar mensagem da IA
