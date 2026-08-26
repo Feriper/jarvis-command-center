@@ -77,6 +77,7 @@ Para atualizar sem baixar arquivo por arquivo, execute [`Atualizar-e-Iniciar-Aur
 | Palavra “Auren” no navegador | Experimental; não é escuta nativa 24 horas |
 | Diagnóstico do PC | Ativo, somente leitura |
 | Prévia de limpeza | Ativo, conta temporários e não apaga nada |
+| Observação de tela | Ativo somente sob demanda ou em modo opt-in a cada 15 segundos |
 | Ponte Windows | Backend pronto, exige token local e ARMAR AÇÕES |
 | Imagem | Depende de provedor de imagem; não é garantida pelo Ollama de texto |
 | Vídeo | Ainda não implementado no núcleo |
@@ -88,7 +89,7 @@ Para atualizar sem baixar arquivo por arquivo, execute [`Atualizar-e-Iniciar-Aur
 
 A ponte é opcional e deve ser iniciada separadamente. O token temporário fica apenas no `.env` local. Consultas de arquivos, janelas e controles são protegidas; mouse, teclado e outras entradas exigem a ponte armada, `confirmed: true`, registro da ação e um kill switch disponível.
 
-O Auren não transforma texto gerado pelo modelo em PowerShell livre. Limpeza, registro do Windows, desligamento e exclusão de pastas pessoais não fazem parte do núcleo seguro.
+O Auren não transforma texto gerado pelo modelo em PowerShell livre. Limpeza, registro do Windows, desligamento e exclusão de pastas pessoais não fazem parte do núcleo seguro. A observação de tela, quando usada, é indicada na interface, pode ser parada a qualquer momento e não envia a captura para um provedor remoto automaticamente.
 
 ## Dados locais
 
