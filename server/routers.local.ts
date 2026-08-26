@@ -56,6 +56,33 @@ async function summarizeDirectory(target: string): Promise<{ files: number; byte
   return { files, bytes, truncated };
 }
 
+async function getLocalAiStatus() {
+  const baseUrl = ENV.localLlmApiUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+  const model = ENV.localLlmModel;
+  try {
+    const response = await fetch(`${baseUrl}/api/tags`, {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!response.ok) {
+      return { provider: "ollama", reachable: false, model, modelReady: false, models: [], message: `Ollama respondeu HTTP ${response.status}.` };
+    }
+    const payload = await response.json() as { models?: Array<{ name?: string }> };
+    const models = (payload.models || []).map(item => item.name || "").filter(Boolean);
+    const modelReady = models.some(name => name === model || name.startsWith(`${model}:`));
+    return {
+      provider: "ollama",
+      reachable: true,
+      model,
+      modelReady,
+      models: models.slice(0, 20),
+      message: modelReady ? "Modelo local pronto." : `Modelo ${model} ainda não foi baixado.`,
+    };
+  } catch {
+    return { provider: "ollama", reachable: false, model, modelReady: false, models: [], message: "Ollama não respondeu em 2,5 segundos." };
+  }
+}
+
 async function exists(target: string): Promise<boolean> {
   try {
     await access(target);
@@ -67,6 +94,8 @@ async function exists(target: string): Promise<boolean> {
 
 export const localSystemRouter = router({
   bridgeStatus: protectedProcedure.query(() => getDesktopBridgeStatus()),
+
+  aiStatus: protectedProcedure.query(() => getLocalAiStatus()),
 
   screenshot: protectedProcedure.query(() => captureDesktopScreen()),
 

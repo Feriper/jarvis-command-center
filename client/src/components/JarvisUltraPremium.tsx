@@ -127,6 +127,10 @@ export function JarvisUltraPremium() {
     refetchInterval: screenWatchEnabled ? 15000 : false,
     refetchOnWindowFocus: false,
   });
+  const aiStatusQuery = trpc.local.aiStatus.useQuery(undefined, {
+    refetchInterval: 30000,
+    refetchOnWindowFocus: false,
+  });
 
   const statusLabel = useMemo(() => {
     if (isLoading || systemStatus === "processing") return "Auren está pensando";
@@ -394,8 +398,8 @@ export function JarvisUltraPremium() {
                 </div>
 
                 <div className="mt-auto rounded-xl border border-white/8 bg-white/[0.025] p-3">
-                  <div className="flex items-center gap-2 text-xs text-emerald-200"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> IA local</div>
-                  <p className="mt-2 text-[11px] leading-5 text-slate-500">Memória e conversas ficam neste computador.</p>
+                  <div className={`flex items-center gap-2 text-xs ${aiStatusQuery.data?.modelReady ? "text-emerald-200" : "text-amber-200"}`}><span className={`h-1.5 w-1.5 rounded-full ${aiStatusQuery.data?.modelReady ? "bg-emerald-300" : "bg-amber-300"}`} /> {aiStatusQuery.data?.modelReady ? "IA local pronta" : "Verificando IA local"}</div>
+                  <p className="mt-2 text-[11px] leading-5 text-slate-500">{aiStatusQuery.data?.message || "Conferindo o Ollama..."}</p>
                   {lastLatencyMs !== null && <p className="mt-2 text-[11px] text-slate-600">Última resposta: {(lastLatencyMs / 1000).toFixed(1)}s</p>}
                 </div>
               </div>
@@ -417,7 +421,7 @@ export function JarvisUltraPremium() {
             </div>
           </header>
 
-          {showModelInfo && <div className="absolute left-4 top-16 z-30 w-72 rounded-xl border border-white/10 bg-[#2a2a2a] p-4 shadow-2xl sm:left-72"><p className="text-sm font-medium text-white">Auren local rápido</p><p className="mt-2 text-xs leading-5 text-slate-400">Qwen2.5 1,5B rodando no Ollama. Sem chave, sem cobrança e sem enviar a conversa para a nuvem.</p><div className="mt-3 flex items-center gap-2 text-[11px] text-emerald-200"><ShieldCheck className="h-3.5 w-3.5" /> modo local ativo</div></div>}
+          {showModelInfo && <div className="absolute left-4 top-16 z-30 w-72 rounded-xl border border-white/10 bg-[#2a2a2a] p-4 shadow-2xl sm:left-72"><p className="text-sm font-medium text-white">Auren local rápido</p><p className="mt-2 text-xs leading-5 text-slate-400">Qwen2.5 1,5B rodando no Ollama. Sem chave, sem cobrança e sem enviar a conversa para a nuvem.</p><div className={`mt-3 flex items-center gap-2 text-[11px] ${aiStatusQuery.data?.modelReady ? "text-emerald-200" : "text-amber-200"}`}><ShieldCheck className="h-3.5 w-3.5" /> {aiStatusQuery.data?.message || "Verificando o modelo local..."}</div></div>}
 
           {mobileMenuOpen && <div className="absolute inset-x-3 top-16 z-30 rounded-xl border border-white/10 bg-[#171717] p-3 shadow-2xl md:hidden"><button type="button" onClick={handleNewConversation} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-white/6"><Plus className="h-4 w-4" /> Nova conversa</button><button type="button" onClick={() => { setShowSettings(true); setMobileMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-white/6"><Settings2 className="h-4 w-4" /> Configurações</button></div>}
 
