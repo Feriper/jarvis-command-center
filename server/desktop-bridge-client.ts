@@ -86,9 +86,31 @@ export function sendDesktopKey(key: string) {
   return bridgeGet<Record<string, never>>(`/api/keyboard/key?key=${encodeURIComponent(key)}`);
 }
 
-export function captureDesktopScreen() {
+export async function captureDesktopScreen() {
   if (!ENV.desktopBridgeToken) {
     throw new Error("A ponte Windows ainda não está conectada.");
   }
-  return buildUrl("/api/screenshot");
+
+  const response = await fetch(buildUrl("/api/screenshot"), {
+    method: "GET",
+    headers: { accept: "image/png,image/jpeg,application/json" },
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(detail || `A ponte Windows respondeu HTTP ${response.status}.`);
+  }
+
+  const contentType = response.headers.get("content-type")?.split(";")[0] || "image/png";
+  if (contentType === "application/json") {
+    const payload = await response.json() as { dataUrl?: string; base64?: string; error?: string };
+    if (payload.dataUrl) return { dataUrl: payload.dataUrl, capturedAt: new Date() };
+    if (payload.base64) return { dataUrl: `data:image/png;base64,${payload.base64}`, capturedAt: new Date() };
+    throw new Error(payload.error || "A ponte não retornou uma imagem válida.");
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+  return {
+    dataUrl: `data:${contentType};base64,${bytes.toString("base64")}`,
+    capturedAt: new Date(),
+  };
 }

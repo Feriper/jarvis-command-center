@@ -89,6 +89,7 @@ export function JarvisUltraPremium() {
   const systemSnapshotQuery = trpc.local.getSnapshot.useQuery(undefined, { enabled: false });
   const bridgeStatusQuery = trpc.local.bridgeStatus.useQuery(undefined, { enabled: false });
   const cleanupPreviewQuery = trpc.local.cleanupPreview.useQuery(undefined, { enabled: false });
+  const screenshotQuery = trpc.local.screenshot.useQuery(undefined, { enabled: false });
 
   const statusLabel = useMemo(() => {
     if (isLoading || systemStatus === "processing") return "Processando";
@@ -420,6 +421,9 @@ export function JarvisUltraPremium() {
                   <button type="button" onClick={() => void bridgeStatusQuery.refetch()} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">
                     <ShieldCheck className="h-4 w-4 text-emerald-300" /> Status da ponte
                   </button>
+                  <button type="button" onClick={() => void screenshotQuery.refetch()} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-300 transition hover:bg-white/5 hover:text-white">
+                    <Search className="h-4 w-4 text-violet-300" /> Capturar tela
+                  </button>
                 </div>
 
                 <div className="mt-auto rounded-2xl border border-white/8 bg-white/[0.025] p-4">
@@ -464,6 +468,7 @@ export function JarvisUltraPremium() {
                 <button type="button" onClick={() => void systemSnapshotQuery.refetch()} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5">Diagnóstico</button>
                 <button type="button" onClick={() => void cleanupPreviewQuery.refetch()} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5">Limpeza preview</button>
                 <button type="button" onClick={() => void bridgeStatusQuery.refetch()} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5">Ponte Windows</button>
+                <button type="button" onClick={() => void screenshotQuery.refetch()} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-300 hover:bg-white/5">Capturar tela</button>
                 <button type="button" onClick={() => setDeepThinkingEnabled(value => !value)} className={`rounded-lg border px-3 py-2 text-xs ${deepThinkingEnabled ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-200" : "border-white/10 text-slate-300"}`}>{deepThinkingEnabled ? "Reflexão: ligada" : "Resposta rápida"}</button>
               </div>
             </div>
@@ -531,6 +536,8 @@ export function JarvisUltraPremium() {
                 {bridgeStatusQuery.error && <div className="rounded-xl border border-rose-300/15 bg-rose-300/5 px-3 py-3 text-xs text-rose-200">Ponte: {bridgeStatusQuery.error.message}</div>}
                 {bridgeStatusQuery.data && <div className="rounded-xl border border-emerald-300/15 bg-emerald-300/5 px-3 py-3 text-xs text-emerald-100">Ponte Windows: {bridgeStatusQuery.data.armed ? "armada" : "desarmada"} · raiz {bridgeStatusQuery.data.root}</div>}
                 {systemSnapshotQuery.data && <div className="rounded-xl border border-white/8 bg-white/[0.025] px-3 py-3 text-xs text-slate-300">{systemSnapshotQuery.data.cpuModel} · {systemSnapshotQuery.data.logicalCores} núcleos · memória em {systemSnapshotQuery.data.memory.usedPercent}% · uptime {Math.round(systemSnapshotQuery.data.uptimeSeconds / 3600)}h</div>}
+                {screenshotQuery.error && <div className="rounded-xl border border-rose-300/15 bg-rose-300/5 px-3 py-3 text-xs text-rose-200">Tela: {screenshotQuery.error.message}</div>}
+                {screenshotQuery.data && <div className="rounded-2xl border border-violet-300/15 bg-violet-300/5 p-3"><div className="mb-2 flex items-center justify-between text-xs text-violet-100"><span>Captura sob demanda</span><button type="button" onClick={() => void screenshotQuery.refetch()} className="text-violet-200 hover:text-white">Atualizar</button></div><img src={screenshotQuery.data.dataUrl} alt="Captura de tela autorizada" className="max-h-[420px] w-full rounded-xl border border-white/10 object-contain" /></div>}
               </div>
             </div>
           </main>

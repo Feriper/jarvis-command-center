@@ -14,6 +14,7 @@ import {
   clickDesktopMouse,
   typeDesktopText,
   sendDesktopKey,
+  captureDesktopScreen,
 } from "./desktop-bridge-client";
 
 async function summarizeDirectory(target: string): Promise<{ files: number; bytes: number; truncated: boolean }> {
@@ -66,6 +67,8 @@ async function exists(target: string): Promise<boolean> {
 
 export const localSystemRouter = router({
   bridgeStatus: protectedProcedure.query(() => getDesktopBridgeStatus()),
+
+  screenshot: protectedProcedure.query(() => captureDesktopScreen()),
 
   files: protectedProcedure
     .input(z.object({ path: z.string().optional() }))
