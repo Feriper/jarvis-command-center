@@ -14,4 +14,6 @@ export const ENV = {
   localOpenId: process.env.JARVIS_LOCAL_OPEN_ID ?? "jarvis-local-user",
   localUserName: process.env.JARVIS_LOCAL_USER_NAME ?? "Usuário local",
   localUserEmail: process.env.JARVIS_LOCAL_USER_EMAIL ?? "",
+  desktopBridgeUrl: process.env.AUREN_DESKTOP_BRIDGE_URL ?? "http://127.0.0.1:8765",
+  desktopBridgeToken: process.env.AUREN_DESKTOP_BRIDGE_TOKEN ?? "",
 };

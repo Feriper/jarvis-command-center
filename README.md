@@ -6,7 +6,9 @@ O **Jarvis Command Center** é um assistente de IA local-first para Windows. A i
 
 O arranque principal abre o chat Jarvis em `/`. Em modo local, o servidor autentica automaticamente apenas requisições de loopback (`127.0.0.1`, `localhost` ou `::1`), sem exigir OAuth ou MySQL. Conversas recentes, mensagens dentro do limite e memórias importantes ficam em `jarvis-state.json`. O histórico é limitado para não crescer indefinidamente e arquivos grandes não são copiados para esse estado.
 
-O backend aceita o Forge/Manus quando `BUILT_IN_FORGE_API_KEY` está configurada. Para rodar no seu PC, também aceita qualquer provedor OpenAI-compatible: OpenAI, um endpoint local como Ollama ou outro serviço compatível. A chave fica no `.env` do servidor e nunca deve ser colocada em código do frontend.
+O backend aceita o Forge/Manus quando `BUILT_IN_FORGE_API_KEY` está configurada. Para rodar no seu PC, também aceita qualquer provedor OpenAI-compatible: OpenAI, um endpoint local como Ollama ou outro serviço compatível. A chave fica no `.env` do servidor e nunca deve ser colocada em código do frontend. A procedure de geração de imagem usa o helper real do provedor quando uma credencial de imagem está configurada; ela não devolve mais um placeholder.
+
+A identidade do assistente é **Auren**. O modo Estratégico prioriza análise e planos; o modo Companheiro usa uma conversa mais próxima. O botão `FALAR` usa a API de reconhecimento disponível no navegador para um comando por vez, e `VOZ ON` usa a síntese de fala do navegador em pt-BR. O botão `AUREN ON` é uma escuta experimental pela palavra-chave no navegador; ele não é ainda um detector nativo local 24 horas. Para escuta contínua privada e mais confiável, o próximo módulo será um worker Windows com VAD e Whisper local.
 
 ## Requisitos do Windows
 
@@ -31,7 +33,7 @@ pnpm dev
 
 Abra `http://127.0.0.1:3000` no navegador. O modo local cria automaticamente os dados em `%LOCALAPPDATA%\Jarvis\data` quando o iniciador de Windows for usado.
 
-A alternativa mais simples é executar `Iniciar-Jarvis-Windows.bat` por duplo clique. Ele verifica Node.js e pnpm, instala dependências na primeira execução, cria `.env` se necessário e inicia o servidor. Para encerrar, pressione `Ctrl+C` na janela do servidor.
+A alternativa mais simples é executar `Iniciar-Jarvis-Windows.bat` por duplo clique. Ele verifica Node.js e pnpm, instala dependências na primeira execução, cria `.env` se necessário e inicia o servidor. Para encerrar, pressione `Ctrl+C` na janela do servidor. Em um clone Git, `Atualizar-e-Iniciar-Auren.bat` tenta fazer `git pull --ff-only` antes de iniciar; se houver alterações locais, ele não sobrescreve nada e pula a atualização.
 
 ## Configuração mínima do `.env`
 
@@ -45,9 +47,13 @@ JARVIS_DATA_DIR=./data
 OPENAI_API_KEY=
 OPENAI_API_BASE=https://api.openai.com/v1
 OPENAI_MODEL=gpt-4o-mini
+AUREN_DESKTOP_BRIDGE_URL=http://127.0.0.1:8765
+AUREN_DESKTOP_BRIDGE_TOKEN=
 ```
 
 Se quiser usar um modelo local compatível com a API OpenAI, mantenha a chave vazia e troque `OPENAI_API_BASE` e `OPENAI_MODEL` pelo endpoint e modelo instalados no seu PC. Modelos locais consomem mais RAM e podem responder mais lentamente; o caminho online é o mais leve para o hardware informado.
+
+Para ligar o Auren à ponte local do Windows, inicie `manus_local_agent` e coloque o token temporário em `AUREN_DESKTOP_BRIDGE_TOKEN`. O Auren consegue consultar arquivos, janelas e controles por meio do backend. Mouse, teclado e ações de UI só são encaminhados quando a ponte está armada e a chamada traz confirmação explícita; mantenha o botão de emergência disponível. Nunca publique esse token no GitHub.
 
 ## Dados e retenção
 
@@ -70,6 +76,14 @@ pnpm build
 ```
 
 `pnpm check` valida o núcleo executável local. `pnpm check:legacy` fica disponível para diagnosticar módulos experimentais antigos que ainda estão no repositório, mas não fazem parte do primeiro arranque do assistente.
+
+## Diagnóstico e manutenção
+
+O botão `DIAGNÓSTICO` coleta um snapshot somente leitura com sistema operacional, CPU, núcleos, memória, uptime, modo local e pasta de dados. Também mostra caminhos temporários apenas como prévia. Não há exclusão automática de arquivos, desligamento, alteração do Registro ou execução de comandos PowerShell no núcleo atual. Um futuro módulo de limpeza deve adotar allowlist, dry-run, logs e confirmação, seguindo esse mesmo princípio.
+
+## Atualização automática
+
+O iniciador `Atualizar-e-Iniciar-Auren.bat` usa `git pull --ff-only` somente quando a pasta é um clone limpo do GitHub. Isso evita downloads arquivo por arquivo, mas ainda é um mecanismo de atualização do código-fonte. Para um instalador real com atualização em segundo plano, o próximo passo é empacotar o app em Tauri/MSIX e publicar artefatos assinados; a chave privada do updater nunca deve ser colocada no repositório.
 
 ## Segurança do modo local
 

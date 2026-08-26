@@ -7,9 +7,12 @@ import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
 import { buildAurenSystemPrompt, type AurenMode } from "./auren-identity";
 import { extractExplicitMemories } from "./local-memory";
+import { localSystemRouter } from "./routers.local";
+import { createImage } from "./image-provider";
 
 export const appRouter = router({
   system: systemRouter,
+  local: localSystemRouter,
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -120,15 +123,27 @@ export const appRouter = router({
         size: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Chamar Manus para gerar imagem
-        const imagePrompt = `${input.prompt}. Estilo: ${input.style || 'profissional, moderno'}. Tamanho: ${input.size || '1024x1024'}`;
-        
-        // Aqui você chamaria a API de geração de imagem do Manus
-        // Por enquanto, retornamos um placeholder
+        const imagePrompt = `${input.prompt}. Estilo: ${input.style || "profissional, moderno"}.`;
+        const result = await createImage({
+          prompt: imagePrompt,
+          size: input.size,
+          style: input.style,
+        });
+
+        if (input.conversationId) {
+          await db.saveMessage({
+            conversationId: input.conversationId,
+            role: "assistant",
+            content: `[IMAGEM GERADA] ${input.prompt}`,
+            metadata: { type: "image_generation", imageUrl: result.url, provider: result.provider },
+          });
+        }
+
         return {
           success: true,
-          message: `Imagem gerada: ${imagePrompt}`,
-          imageUrl: "https://via.placeholder.com/1024x1024?text=Generated+Image"
+          message: `Imagem gerada pelo provedor ${result.provider}.`,
+          imageUrl: result.url,
+          provider: result.provider,
         };
       }),
 

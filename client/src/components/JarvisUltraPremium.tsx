@@ -12,6 +12,7 @@ interface Message {
   deepThinking?: boolean;
   confidence?: number;
   sources?: string[];
+  imageUrl?: string;
 }
 
 interface AgencyStep {
@@ -37,11 +38,15 @@ export function JarvisUltraPremium() {
   const [systemStatus, setSystemStatus] = useState<"nominal" | "processing" | "alert">("nominal");
   const [isListening, setIsListening] = useState(false);
   const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(false);
+  const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState("");
   const recognitionRef = useRef<any>(null);
+  const wakeRecognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sendMessageMutation = trpc.chat.sendMessage.useMutation();
+  const generateImageMutation = trpc.chat.generateImage.useMutation();
+  const systemSnapshotQuery = trpc.local.getSnapshot.useQuery(undefined, { enabled: false });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -96,6 +101,24 @@ export function JarvisUltraPremium() {
     ]);
 
     try {
+      if (userContent.toLowerCase().startsWith("/imagem ")) {
+        const result = await generateImageMutation.mutateAsync({
+          prompt: userContent.slice("/imagem ".length).trim(),
+          style: "cinematográfico, detalhado, original",
+          conversationId,
+        });
+        setAgencySteps((prev) => prev.map(s => ({ ...s, status: "completed" })));
+        setMessages((prev) => [...prev, {
+          id: `msg_${Date.now() + 1}`,
+          role: "assistant",
+          content: result.message,
+          imageUrl: result.imageUrl,
+          timestamp: new Date(),
+        }]);
+        setSystemStatus("nominal");
+        return;
+      }
+
       const response = await sendMessageMutation.mutateAsync({
         content: userContent,
         conversationId: conversationId,
@@ -136,6 +159,66 @@ export function JarvisUltraPremium() {
       setTimeout(() => setAgencySteps([]), 1500);
     }
   };
+
+  useEffect(() => {
+    if (!wakeWordEnabled) {
+      wakeRecognitionRef.current?.stop();
+      wakeRecognitionRef.current = null;
+      return;
+    }
+
+    const Recognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!Recognition) {
+      setVoiceNotice("Ativação por palavra não está disponível neste navegador.");
+      setWakeWordEnabled(false);
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognition.lang = "pt-BR";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.onstart = () => setVoiceNotice("Auren está em espera pela palavra de ativação.");
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results || [])
+        .slice(event.resultIndex || 0)
+        .map((result: any) => result?.[0]?.transcript || "")
+        .join(" ")
+        .trim();
+      const normalized = transcript.toLowerCase();
+      const wakeIndex = normalized.indexOf("auren");
+      if (wakeIndex < 0) return;
+
+      const command = transcript.slice(wakeIndex + "auren".length).trim();
+      if (!command) {
+        setVoiceNotice("Palavra de ativação reconhecida. Auren está pronto.");
+        return;
+      }
+      setVoiceNotice(`Comando Auren: ${command}`);
+      void handleSendMessage(command);
+    };
+    recognition.onerror = () => setVoiceNotice("A escuta por palavra foi interrompida pelo navegador.");
+    recognition.onend = () => {
+      if (wakeWordEnabled) {
+        window.setTimeout(() => {
+          try { recognition.start(); } catch { /* já iniciado ou encerrado */ }
+        }, 400);
+      }
+    };
+    wakeRecognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch {
+      setVoiceNotice("Não foi possível iniciar a escuta por palavra.");
+      setWakeWordEnabled(false);
+    }
+
+    return () => {
+      recognition.onend = null;
+      recognition.stop();
+      wakeRecognitionRef.current = null;
+    };
+  }, [wakeWordEnabled]);
 
   const toggleVoiceListening = () => {
     if (isListening) {
@@ -241,6 +324,22 @@ export function JarvisUltraPremium() {
             </button>
             <button
               type="button"
+              onClick={() => void systemSnapshotQuery.refetch()}
+              className="px-2 py-1.5 border border-blue-900 rounded text-[9px] font-bold text-blue-400 transition-all"
+              title="Diagnóstico somente leitura do computador"
+            >
+              <Cpu className="inline-block w-3 h-3 mr-1" />DIAGNÓSTICO
+            </button>
+            <button
+              type="button"
+              onClick={() => setWakeWordEnabled(value => !value)}
+              className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${wakeWordEnabled ? "border-amber-400 text-amber-300 bg-amber-400/10" : "border-blue-900 text-blue-400"}`}
+              title="Escuta experimental com palavra de ativação Auren"
+            >
+              AUREN {wakeWordEnabled ? "ON" : "OFF"}
+            </button>
+            <button
+              type="button"
               onClick={() => setVoiceOutputEnabled(value => !value)}
               className={`px-2 py-1.5 border rounded text-[9px] font-bold transition-all ${voiceOutputEnabled ? "border-cyan-400 text-cyan-300 bg-cyan-400/10" : "border-blue-900 text-blue-400"}`}
               title="Resposta falada em português brasileiro"
@@ -302,6 +401,9 @@ export function JarvisUltraPremium() {
                       : "border-cyan-500/20 rounded-tl-none text-cyan-50"
                   }`}>
                     <p className="leading-relaxed text-sm whitespace-pre-wrap">{msg.content}</p>
+                    {msg.imageUrl && (
+                      <img src={msg.imageUrl} alt="Imagem gerada por Auren" className="mt-4 max-h-96 max-w-full rounded border border-cyan-400/20" />
+                    )}
                     
                     {msg.sources && msg.sources.length > 0 && (
                       <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
@@ -363,6 +465,11 @@ export function JarvisUltraPremium() {
               {voiceNotice}
             </div>
           )}
+          {systemSnapshotQuery.data && (
+            <div className="mb-3 p-3 border border-blue-500/10 text-[9px] uppercase tracking-widest text-blue-300/70">
+              CPU: {systemSnapshotQuery.data.cpuModel} · NÚCLEOS: {systemSnapshotQuery.data.logicalCores} · RAM: {systemSnapshotQuery.data.memory.usedPercent}% · UPTIME: {Math.round(systemSnapshotQuery.data.uptimeSeconds / 3600)}H
+            </div>
+          )}
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl blur opacity-30 group-focus-within:opacity-100 transition duration-1000"></div>
             <div className="relative flex items-center bg-black border border-blue-500/20 rounded-xl overflow-hidden">
@@ -374,7 +481,7 @@ export function JarvisUltraPremium() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder="INSIRA COMANDO OU CONSULTA ESTRATÉGICA..."
+                placeholder="Digite uma pergunta ou /imagem sua descrição..."
                 className="w-full bg-transparent py-5 px-4 text-blue-100 placeholder-blue-900/50 focus:outline-none text-xs tracking-widest"
               />
               <motion.button
