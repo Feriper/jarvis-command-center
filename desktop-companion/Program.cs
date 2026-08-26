@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Drawing;
-using System.Net;
+using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using System.Windows.Forms;
@@ -42,6 +42,14 @@ sealed class CompanionApplicationContext : ApplicationContext
         var updateItem = new ToolStripMenuItem("Atualizar Auren");
         updateItem.Click += (_, _) => mainForm.LaunchUpdate();
         menu.Items.Add(updateItem);
+
+        var speakItem = new ToolStripMenuItem("Testar voz local");
+        speakItem.Click += (_, _) => _ = SpeechService.SpeakAsync("Olá, Feripe. Esta é a voz local do Auren.");
+        menu.Items.Add(speakItem);
+
+        var stopSpeechItem = new ToolStripMenuItem("Parar voz");
+        stopSpeechItem.Click += (_, _) => SpeechService.Stop();
+        menu.Items.Add(stopSpeechItem);
 
         menu.Items.Add(new ToolStripSeparator());
         var waitingItem = new ToolStripMenuItem("Ativar estado de espera");
@@ -248,6 +256,7 @@ sealed class MainForm : Form
             await webView.EnsureCoreWebView2Async(environment);
             webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
             webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+            webView.CoreWebView2.WebMessageReceived += HandleWebMessageReceived;
             webView.Source = new Uri(serverUrl);
             await CheckForUpdatesAsync();
         }
@@ -269,6 +278,29 @@ sealed class MainForm : Form
             MessageBox.Show($"Não consegui abrir o Auren local em {serverUrl}.\n\n{error.Message}", "Auren", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
+
+    private void HandleWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        try
+        {
+            var json = e.TryGetWebMessageAsString();
+            var message = JsonSerializer.Deserialize<VoiceMessage>(json);
+            if (message?.Type == "speak" && !string.IsNullOrWhiteSpace(message.Text))
+            {
+                _ = SpeechService.SpeakAsync(message.Text);
+            }
+            else if (message?.Type == "stop-speech")
+            {
+                SpeechService.Stop();
+            }
+        }
+        catch
+        {
+            // Mensagens não relacionadas à voz são ignoradas pelo host.
+        }
+    }
+
+    private sealed record VoiceMessage(string? Type, string? Text);
 
     private async Task<bool> EnsureServerAvailableAsync()
     {
@@ -402,7 +434,11 @@ sealed class MainForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) webView.Dispose();
+        if (disposing)
+        {
+            SpeechService.Stop();
+            webView.Dispose();
+        }
         base.Dispose(disposing);
     }
 }

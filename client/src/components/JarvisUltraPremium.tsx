@@ -162,9 +162,17 @@ export function JarvisUltraPremium() {
   }, [personaMode, selectedMicrophone]);
 
   useEffect(() => {
-    if (!voiceOutputEnabled || typeof window === "undefined" || !window.speechSynthesis) return;
+    if (!voiceOutputEnabled || typeof window === "undefined") return;
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage || lastMessage.role !== "assistant") return;
+
+    const nativeWebView = (window as any).chrome?.webview;
+    if (nativeWebView?.postMessage) {
+      nativeWebView.postMessage({ type: "speak", text: lastMessage.content });
+      return () => nativeWebView.postMessage({ type: "stop-speech" });
+    }
+
+    if (!window.speechSynthesis) return;
     const utterance = new SpeechSynthesisUtterance(lastMessage.content);
     utterance.lang = "pt-BR";
     const voices = window.speechSynthesis.getVoices();
